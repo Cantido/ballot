@@ -42,6 +42,25 @@ defmodule Ballot.Counting do
     ...> ]
     iex> Ballot.Counting.instant_runoff(votes)
     "3"
+
+    You can also pass in a required win percentage greater than 50.0,
+    and less than or equal to 100.
+    In this case, candidates "2," "3," and "4" lose the first round,
+    and their votes are now for "6".
+    In the second round, "1" then loses, and their votes count for "6".
+    Candidate "6" then wins.
+
+    iex> votes = [
+    ...>   Ballot.RankedVote.new(["1", "6"]),
+    ...>   Ballot.RankedVote.new(["1", "6"]),
+    ...>   Ballot.RankedVote.new(["1", "6"]),
+    ...>   Ballot.RankedVote.new(["2", "6"]),
+    ...>   Ballot.RankedVote.new(["3", "6"]),
+    ...>   Ballot.RankedVote.new(["4", "6"]),
+    ...>   Ballot.RankedVote.new(["5", "6"]),
+    ...> ]
+    iex> Ballot.Counting.instant_runoff(votes, required_percentage: 75.0)
+    "6"
   """
   def instant_runoff(ranked_votes, opts \\ []) do
     do_instant_runoff(ranked_votes, [], opts)
