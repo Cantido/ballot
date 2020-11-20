@@ -259,4 +259,43 @@ defmodule Ballot.Counting do
     Enum.filter(points, fn {_choice, points} -> points == best_points end)
     |> Enum.map(&elem(&1, 0))
   end
+
+  @doc """
+  Counts votes by finding each candidate's average score.
+
+  ## Examples
+
+  In this example, candidate "B" wins with an average rating of 4.
+  Candidate "A" ends with a score of 3, and "C" with a score of 1.
+
+      iex> votes = [
+      ...>   Ballot.ScoreVote.new(%{"A" => 5, "B" => 4, "C" => 1}),
+      ...>   Ballot.ScoreVote.new(%{"A" => 1, "B" => 4, "C" => 1}),
+      ...> ]
+      iex> Ballot.Counting.score(votes)
+      ["B"]
+  """
+  def score(score_votes) do
+    points =
+      score_votes
+      |> Enum.flat_map(fn vote ->
+        vote.scores
+        |> Enum.map(fn candidate_score ->
+          {candidate_score.candidate, candidate_score.score}
+        end)
+      end)
+      |> Enum.reduce(%{}, fn {candidate_id, score}, acc ->
+        Map.update(acc, candidate_id, score, &(&1 + score))
+      end)
+
+    # We don't need to actually find the average, since we will just be
+    # picking the highest anyway.
+
+    {_best_candidate, best_points} =
+      Enum.max_by(points, fn {_choice, points} -> points end)
+
+    # detect ties, report all winners
+    Enum.filter(points, fn {_choice, points} -> points == best_points end)
+    |> Enum.map(&elem(&1, 0))
+  end
 end
