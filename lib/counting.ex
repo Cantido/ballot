@@ -190,12 +190,12 @@ defmodule Ballot.Counting do
   - "1" earns 1.33 points
   - "3" earns 0.88 points
 
-  iex> votes = [
-  ...>   Ballot.RankedVote.new(["1", "2", "3"]),
-  ...>   Ballot.RankedVote.new(["2", "3", "1"]),
-  ...> ]
-  iex> Ballot.Counting.dowdall(votes)
-  ["2"]
+      iex> votes = [
+      ...>   Ballot.RankedVote.new(["1", "2", "3"]),
+      ...>   Ballot.RankedVote.new(["2", "3", "1"]),
+      ...> ]
+      iex> Ballot.Counting.dowdall(votes)
+      ["2"]
 
   """
   def dowdall(ranked_votes) do
@@ -206,6 +206,46 @@ defmodule Ballot.Counting do
         |> Enum.with_index()
         |> Enum.map(fn {choice, index} ->
           {choice, 1 / (index + 1)}
+        end)
+      end)
+      |> Enum.reduce(%{}, fn {choice, points}, acc ->
+        Map.update(acc, choice, points, &(&1 + points))
+      end)
+
+    {_best_candidate, best_points} =
+      Enum.max_by(points, fn {_choice, points} -> points end)
+
+    # detect ties, report all winners
+    Enum.filter(points, fn {_choice, points} -> points == best_points end)
+    |> Enum.map(&elem(&1, 0))
+  end
+
+  @doc """
+  Counts approval votes by counting the total number of approvals for each candidate.
+
+  This is different from ranked-choice counting strategies
+  because candidates are not ranked among one another,
+  and the voter only chooses the candidates they approve of.
+
+  ## Examples
+
+  Candidate "2" wins because it has two approvals,
+  whereas candidates "1" and "3" only have one.
+
+      iex> votes = [
+      ...>   Ballot.ApprovalVote.new(["1", "2"]),
+      ...>   Ballot.ApprovalVote.new(["2", "3"]),
+      ...> ]
+      iex> Ballot.Counting.approval(votes)
+      ["2"]
+  """
+  def approval(approval_votes) do
+    points =
+      approval_votes
+      |> Enum.flat_map(fn vote ->
+        vote.choices
+        |> Enum.map(fn choice ->
+          {choice, 1}
         end)
       end)
       |> Enum.reduce(%{}, fn {choice, points}, acc ->
