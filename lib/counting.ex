@@ -167,4 +167,56 @@ defmodule Ballot.Counting do
     Enum.filter(points, fn {_choice, points} -> points == best_points end)
     |> Enum.map(&elem(&1, 0))
   end
+
+  @doc """
+  Counts votes based on fractional points awarded to each rank.
+
+  Similar to the Borda count, but instead of granting *more* points to higher ranks,
+  it awards *fractionally smaller* amounts of points to lower ranks.
+  In a ballot with five candidates:
+  - 1st earns 1.00 points
+  - 2nd choice earns 0.50 points
+  - 3rd choice earns 0.33 points
+  - 4th choice earns 0.25 points
+  - 5th choice earns 0.20 points
+
+  For the nth position on the ballot (starting at one), the candidate will earn `1 / n` points.
+
+  ## Examples
+
+  In this example:
+
+  - "2" earns 1.50 points
+  - "1" earns 1.33 points
+  - "3" earns 0.88 points
+
+  iex> votes = [
+  ...>   Ballot.RankedVote.new(["1", "2", "3"]),
+  ...>   Ballot.RankedVote.new(["2", "3", "1"]),
+  ...> ]
+  iex> Ballot.Counting.dowdall(votes)
+  ["2"]
+
+  """
+  def dowdall(ranked_votes) do
+    points =
+      ranked_votes
+      |> Enum.flat_map(fn vote ->
+        vote.choices
+        |> Enum.with_index()
+        |> Enum.map(fn {choice, index} ->
+          {choice, 1 / (index + 1)}
+        end)
+      end)
+      |> Enum.reduce(%{}, fn {choice, points}, acc ->
+        Map.update(acc, choice, points, &(&1 + points))
+      end)
+
+    {_best_candidate, best_points} =
+      Enum.max_by(points, fn {_choice, points} -> points end)
+
+    # detect ties, report all winners
+    Enum.filter(points, fn {_choice, points} -> points == best_points end)
+    |> Enum.map(&elem(&1, 0))
+  end
 end
