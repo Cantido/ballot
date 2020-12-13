@@ -4,6 +4,32 @@ defmodule Ballot.Counting do
   """
 
   @doc """
+  Counts votes and grants the win to the candidate with the most votes.
+
+  ## Examples
+
+      iex> votes = [
+      ...>  Ballot.PluralityVote.new("A"),
+      ...>  Ballot.PluralityVote.new("A"),
+      ...>  Ballot.PluralityVote.new("A"),
+      ...>  Ballot.PluralityVote.new("B"),
+      ...>  Ballot.PluralityVote.new("B"),
+      ...> ]
+      iex> Ballot.Counting.plurality(votes)
+      ["A"]
+  """
+  def plurality(votes) do
+    freq = Enum.frequencies_by(votes, & &1.choice)
+
+    # select all winners with max votes so we can recognize ties.
+    max_votes = Enum.max(Map.values(freq))
+
+    freq
+    |> Enum.filter(fn {_candidate, vote_count} -> vote_count == max_votes end)
+    |> Enum.map(fn {candidate, _vote_count} -> candidate end)
+  end
+
+  @doc """
   Counts first place votes, and if the winner has more than 50% of the vote, they win.
   If not, the candidate with the least number of first-choice votes is dropped,
   and the votes are tallied again,
