@@ -104,6 +104,7 @@ defmodule Ballot.Counting do
         raise "Instant runoff win percentage cannot be higher than 100, but was #{inspect win_percentage}"
       win_percentage < 50.0 ->
         raise "Instant runoff win percentage must be a majority (greater than or equal to 50), but was #{inspect win_percentage}"
+      true -> nil
     end
 
     if best_percentage > win_percentage do
