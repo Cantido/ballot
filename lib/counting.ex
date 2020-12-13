@@ -16,12 +16,12 @@ defmodule Ballot.Counting do
   first-choice votes wins.
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["1"]),
-      ...>   Ballot.RankedVote.new(["1"]),
-      ...>   Ballot.RankedVote.new(["2"])
+      ...>   Ballot.RankedVote.new(["A"]),
+      ...>   Ballot.RankedVote.new(["A"]),
+      ...>   Ballot.RankedVote.new(["B"])
       ...> ]
       iex> Ballot.Counting.instant_runoff(votes)
-      "1"
+      "A"
 
     If no candidate got at least fifty percent of the vote,
     the candidate with the smallest amount of votes is eliminated.
@@ -29,38 +29,38 @@ defmodule Ballot.Counting do
     candidate as first choice.
 
     In this example, no candidates win on the first pass,
-    as "3" does not have *greater than fifty percent* of the vote.
-    Candidates "1" and "2" will lose the first round.
-    Votes with "1" and "2" first will then fall back to their next choice,
-    granting "3" the victory with four out of four votes.
+    as "C" does not have *greater than fifty percent* of the vote.
+    Candidates "A" and "B" will lose the first round.
+    Votes with "A" and "B" first will then fall back to their next choice,
+    granting "C" the victory with four out of four votes.
 
     iex> votes = [
-    ...>   Ballot.RankedVote.new(["1", "3"]),
-    ...>   Ballot.RankedVote.new(["2", "3"]),
-    ...>   Ballot.RankedVote.new(["3"]),
-    ...>   Ballot.RankedVote.new(["3"])
+    ...>   Ballot.RankedVote.new(["A", "C"]),
+    ...>   Ballot.RankedVote.new(["B", "C"]),
+    ...>   Ballot.RankedVote.new(["C"]),
+    ...>   Ballot.RankedVote.new(["C"])
     ...> ]
     iex> Ballot.Counting.instant_runoff(votes)
-    "3"
+    "C"
 
     You can also pass in a required win percentage greater than 50.0,
     and less than or equal to 100.
-    In this case, candidates "2," "3," and "4" lose the first round,
-    and their votes are now for "6".
-    In the second round, "1" then loses, and their votes count for "6".
-    Candidate "6" then wins.
+    In this case, candidates "B," "C," and "D" lose the first round,
+    and their votes are now for "F".
+    In the second round, "A" then loses, and their votes count for "F".
+    Candidate "F" then wins.
 
     iex> votes = [
-    ...>   Ballot.RankedVote.new(["1", "6"]),
-    ...>   Ballot.RankedVote.new(["1", "6"]),
-    ...>   Ballot.RankedVote.new(["1", "6"]),
-    ...>   Ballot.RankedVote.new(["2", "6"]),
-    ...>   Ballot.RankedVote.new(["3", "6"]),
-    ...>   Ballot.RankedVote.new(["4", "6"]),
-    ...>   Ballot.RankedVote.new(["5", "6"]),
+    ...>   Ballot.RankedVote.new(["A", "F"]),
+    ...>   Ballot.RankedVote.new(["A", "F"]),
+    ...>   Ballot.RankedVote.new(["A", "F"]),
+    ...>   Ballot.RankedVote.new(["B", "F"]),
+    ...>   Ballot.RankedVote.new(["C", "F"]),
+    ...>   Ballot.RankedVote.new(["D", "F"]),
+    ...>   Ballot.RankedVote.new(["E", "F"]),
     ...> ]
     iex> Ballot.Counting.instant_runoff(votes, required_percentage: 75.0)
-    "6"
+    "F"
   """
   def instant_runoff(ranked_votes, opts \\ []) do
     do_instant_runoff(ranked_votes, [], opts)
@@ -112,34 +112,34 @@ defmodule Ballot.Counting do
   Each vote grants points to all candidates based on their rank in the vote.
   For example, in this vote:
 
-      Ballot.RankedVote.new(["1", "2"])
+      Ballot.RankedVote.new(["A", "B"])
 
-  Candidate "1" is granted two points, and candidate "2" is granted one point.
+  Candidate "A" is granted two points, and candidate "B" is granted one point.
 
   ## Examples
 
-  In this example, candidate "2" wins with five points.
-  Candidate "1" is in second place with four points,
-  and candidate "3" is last with three points.
+  In this example, candidate "B" wins with five points.
+  Candidate "A" is in second place with four points,
+  and candidate "C" is last with three points.
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["1", "2", "3"]),
-      ...>   Ballot.RankedVote.new(["2", "3", "1"]),
+      ...>   Ballot.RankedVote.new(["A", "B", "C"]),
+      ...>   Ballot.RankedVote.new(["B", "C", "A"]),
       ...> ]
       iex> Ballot.Counting.borda(votes)
-      ["2"]
+      ["B"]
 
   You also start the counting at zero, instead of one, so the last place choice gets zero points.
   In the previous example, the winner is the same, but the points end up different.
-  Candidate "2" still wins, but with three points,
-  candidate "1" gets two points, and candidate "3" gets one point.
+  Candidate "B" still wins, but with three points,
+  candidate "A" gets two points, and candidate "C" gets one point.
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["1", "2", "3"]),
-      ...>   Ballot.RankedVote.new(["2", "3", "1"]),
+      ...>   Ballot.RankedVote.new(["A", "B", "C"]),
+      ...>   Ballot.RankedVote.new(["B", "C", "A"]),
       ...> ]
       iex> Ballot.Counting.borda(votes, starting_at: 0)
-      ["2"]
+      ["B"]
   """
   def borda(ranked_votes, opts \\ []) do
     starting_at = Keyword.get(opts, :starting_at, 1)
@@ -186,16 +186,16 @@ defmodule Ballot.Counting do
 
   In this example:
 
-  - "2" earns 1.50 points
-  - "1" earns 1.33 points
-  - "3" earns 0.88 points
+  - "B" earns 1.50 points
+  - "A" earns 1.33 points
+  - "C" earns 0.88 points
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["1", "2", "3"]),
-      ...>   Ballot.RankedVote.new(["2", "3", "1"]),
+      ...>   Ballot.RankedVote.new(["A", "B", "C"]),
+      ...>   Ballot.RankedVote.new(["B", "C", "A"]),
       ...> ]
       iex> Ballot.Counting.dowdall(votes)
-      ["2"]
+      ["B"]
 
   """
   def dowdall(ranked_votes) do
@@ -229,15 +229,15 @@ defmodule Ballot.Counting do
 
   ## Examples
 
-  Candidate "2" wins because it has two approvals,
-  whereas candidates "1" and "3" only have one.
+  Candidate "B" wins because it has two approvals,
+  whereas candidates "A" and "C" only have one.
 
       iex> votes = [
-      ...>   Ballot.ApprovalVote.new(["1", "2"]),
-      ...>   Ballot.ApprovalVote.new(["2", "3"]),
+      ...>   Ballot.ApprovalVote.new(["A", "B"]),
+      ...>   Ballot.ApprovalVote.new(["B", "C"]),
       ...> ]
       iex> Ballot.Counting.approval(votes)
-      ["2"]
+      ["B"]
   """
   def approval(approval_votes) do
     points =
