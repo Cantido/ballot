@@ -14,9 +14,11 @@ defmodule Ballot.ScoreVote do
   alias Ballot.ScoreVote.CandidateScore
 
   @enforce_keys [
+    :id,
     :scores
   ]
   defstruct [
+    id: nil,
     scores: []
   ]
 
@@ -34,6 +36,7 @@ defmodule Ballot.ScoreVote do
       end)
 
     %__MODULE__{
+      id: Ballot.ID.generate(),
       scores: score_structs
     }
   end

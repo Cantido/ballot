@@ -4,9 +4,11 @@ defmodule Ballot.RankedVote do
   i.e. `[first_choice, second_choice, third_choice]`, etc.
   """
   @enforce_keys [
+    :id,
     :choices
   ]
   defstruct [
+    id: nil,
     choices: []
   ]
   @doc """
@@ -17,6 +19,7 @@ defmodule Ballot.RankedVote do
   """
   def new(candidate_ids) do
     %__MODULE__{
+      id: Ballot.ID.generate(),
       choices: candidate_ids
     }
   end
