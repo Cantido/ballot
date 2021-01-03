@@ -16,7 +16,7 @@ defmodule Ballot.Election do
   @doc """
   Add a vote to an election.
   """
-  def vote(election, vote) do
+  def cast(election, vote) do
     # check to make sure only one type of vote is being cast
     if Enum.count(election.votes) > 0 do
       first_vote_type = List.first(election.votes).__struct__
