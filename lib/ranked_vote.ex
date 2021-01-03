@@ -20,7 +20,7 @@ defmodule Ballot.RankedVote do
   """
   def new(candidate_ids) do
     %__MODULE__{
-      id: Ballot.ID.generate(),
+      id: Ballot.ID.human_readable(),
       choices: candidate_ids
     }
   end

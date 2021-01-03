@@ -1,6 +1,6 @@
 defmodule Ballot.ApprovalVote do
   @behaviour Ballot.Vote
-  
+
   @enforce_keys [
     :id,
     :choices
@@ -12,7 +12,7 @@ defmodule Ballot.ApprovalVote do
 
   def new(choices) do
     %__MODULE__{
-      id: Ballot.ID.generate(),
+      id: Ballot.ID.human_readable(),
       choices: choices
     }
   end

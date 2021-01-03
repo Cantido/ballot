@@ -4,7 +4,7 @@ defmodule Ballot.ID do
 
   These IDs consist of four groups of four characters, separated by a hyphen, for example `abcd-1234-ABCD-wxyz`.
   """
-  def generate do
+  def human_readable do
     # Check against https://zelark.github.io/nano-id-cc/ to see the collision chance.
     Nanoid.generate(16, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
     |> String.to_charlist()

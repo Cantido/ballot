@@ -12,7 +12,7 @@ defmodule Ballot.PluralityVote do
 
   def new(choice) do
     %__MODULE__{
-      id: Ballot.ID.generate(),
+      id: Ballot.ID.human_readable(),
       choice: choice
     }
   end

@@ -38,7 +38,7 @@ defmodule Ballot.ScoreVote do
       end)
 
     %__MODULE__{
-      id: Ballot.ID.generate(),
+      id: Ballot.ID.human_readable(),
       scores: score_structs
     }
   end
