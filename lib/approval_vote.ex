@@ -1,4 +1,6 @@
 defmodule Ballot.ApprovalVote do
+  @behaviour Ballot.Vote
+  
   @enforce_keys [
     :id,
     :choices
@@ -13,5 +15,12 @@ defmodule Ballot.ApprovalVote do
       id: Ballot.ID.generate(),
       choices: choices
     }
+  end
+
+  @doc """
+  Returns a list of all candidates included in this vote in no particular order.
+  """
+  def candidates(vote) do
+    vote.choices
   end
 end

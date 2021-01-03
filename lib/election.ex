@@ -9,7 +9,7 @@ defmodule Ballot.Election do
 
   def new(candidates) do
     %__MODULE__{
-      candidates: candidates
+      candidates: MapSet.new(candidates)
     }
   end
 
@@ -31,6 +31,15 @@ defmodule Ballot.Election do
     vote_ids = Enum.into(election.votes, MapSet.new(), &Map.get(&1, :id))
     if MapSet.member?(vote_ids, vote.id) do
       raise "Vote ID #{inspect vote.id} already cast."
+    end
+
+    # check to make sure the vote's candidates are in this election
+    vote_candidates = vote.__struct__.candidates(vote) |> MapSet.new()
+    unless MapSet.subset?(vote_candidates, election.candidates) do
+      unknown_candidates = MapSet.difference(vote_candidates, election.candidates)
+      raise "Vote cast for invalid candidates. " <>
+        "Vote #{inspect vote.id} contained #{inspect MapSet.to_list(unknown_candidates)}, " <>
+        "but the election's candidates are #{inspect MapSet.to_list(election.candidates)}."
     end
 
     Map.update!(election, :votes, fn votes ->

@@ -4,7 +4,7 @@ defmodule Ballot.ElectionTest do
 
   test "adding a vote" do
     election =
-      Ballot.Election.new(["A"])
+      Ballot.Election.new(["A", "B"])
       |> Ballot.Election.cast(Ballot.PluralityVote.new("A"))
       |> Ballot.Election.cast(Ballot.PluralityVote.new("A"))
       |> Ballot.Election.cast(Ballot.PluralityVote.new("B"))
@@ -31,6 +31,14 @@ defmodule Ballot.ElectionTest do
 
     assert_raise RuntimeError, fn ->
       Ballot.Election.cast(election, vote)
+    end
+  end
+
+  test "raises when a vote has candidates not in the election" do
+    election = Ballot.Election.new(["A"])
+
+    assert_raise RuntimeError, fn ->
+      Ballot.Election.cast(election, Ballot.PluralityVote.new("B"))
     end
   end
 end

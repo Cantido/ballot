@@ -13,6 +13,8 @@ defmodule Ballot.ScoreVote do
 
   alias Ballot.ScoreVote.CandidateScore
 
+  @behaviour Ballot.Vote
+
   @enforce_keys [
     :id,
     :scores
@@ -39,5 +41,9 @@ defmodule Ballot.ScoreVote do
       id: Ballot.ID.generate(),
       scores: score_structs
     }
+  end
+
+  def candidates(vote) do
+    Enum.map(vote.scores, & &1.candidate)
   end
 end
