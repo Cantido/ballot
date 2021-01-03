@@ -21,4 +21,16 @@ defmodule Ballot.ElectionTest do
       Ballot.Election.vote(election, Ballot.ApprovalVote.new(["A"]))
     end
   end
+
+  test "raises when a duplicate vote is added" do
+    vote = Ballot.PluralityVote.new("A")
+
+    election =
+      Ballot.Election.new(["A"])
+      |> Ballot.Election.vote(vote)
+
+    assert_raise RuntimeError, fn ->
+      Ballot.Election.vote(election, vote)
+    end
+  end
 end
