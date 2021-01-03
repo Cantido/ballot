@@ -17,33 +17,38 @@ defmodule Ballot.Election do
   Add a vote to an election.
   """
   def cast(election, vote) do
-    # check to make sure only one type of vote is being cast
+    cond do
+      not valid_vote_type?(election, vote) -> {:error, :wrong_vote_type}
+      duplicate_vote?(election, vote) -> {:error, :duplicate_vote}
+      not vote_for_candidates_in_election?(election, vote) -> {:error, :candidate_not_in_election}
+      true ->
+        updated_election =
+          Map.update!(election, :votes, fn votes ->
+            [vote | votes]
+          end)
+
+        {:ok, updated_election}
+    end
+  end
+
+  defp valid_vote_type?(election, vote) do
     if Enum.count(election.votes) > 0 do
       first_vote_type = List.first(election.votes).__struct__
       new_vote_type = vote.__struct__
 
-      unless first_vote_type == new_vote_type do
-        raise "Cannot mix vote types. Given election had a vote of type #{first_vote_type} but was given a new vote of type #{new_vote_type}."
-      end
+      first_vote_type == new_vote_type
+    else
+      true
     end
+  end
 
-    # check to make sure duplicate votes aren't being cast
+  defp duplicate_vote?(election, vote) do
     vote_ids = Enum.into(election.votes, MapSet.new(), &Map.get(&1, :id))
-    if MapSet.member?(vote_ids, vote.id) do
-      raise "Vote ID #{inspect vote.id} already cast."
-    end
+    MapSet.member?(vote_ids, vote.id)
+  end
 
-    # check to make sure the vote's candidates are in this election
+  defp vote_for_candidates_in_election?(election, vote) do
     vote_candidates = vote.__struct__.candidates(vote) |> MapSet.new()
-    unless MapSet.subset?(vote_candidates, election.candidates) do
-      unknown_candidates = MapSet.difference(vote_candidates, election.candidates)
-      raise "Vote cast for invalid candidates. " <>
-        "Vote #{inspect vote.id} contained #{inspect MapSet.to_list(unknown_candidates)}, " <>
-        "but the election's candidates are #{inspect MapSet.to_list(election.candidates)}."
-    end
-
-    Map.update!(election, :votes, fn votes ->
-      [vote | votes]
-    end)
+    MapSet.subset?(vote_candidates, election.candidates)
   end
 end
