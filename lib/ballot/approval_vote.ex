@@ -15,10 +15,9 @@ defmodule Ballot.ApprovalVote do
     }
   end
 
-  @doc """
-  Returns a list of all candidates included in this vote in no particular order.
-  """
-  def candidates(vote) do
-    vote.choices
+  defimpl Ballot.Vote, for: __MODULE__ do
+    def candidates(vote) do
+      vote.choices
+    end
   end
 end
