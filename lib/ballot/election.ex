@@ -1,4 +1,6 @@
 defmodule Ballot.Election do
+  alias Ballot.Vote
+
   @enforce_keys [
     :candidates
   ]
@@ -44,11 +46,11 @@ defmodule Ballot.Election do
 
   defp duplicate_vote?(election, vote) do
     vote_ids = Enum.into(election.votes, MapSet.new(), &Map.get(&1, :id))
-    MapSet.member?(vote_ids, vote.id)
+    MapSet.member?(vote_ids, Vote.id(vote))
   end
 
   defp vote_for_candidates_in_election?(election, vote) do
-    vote_candidates = Ballot.Vote.candidates(vote) |> MapSet.new()
+    vote_candidates = Vote.candidates(vote) |> MapSet.new()
     MapSet.subset?(vote_candidates, election.candidates)
   end
 end
