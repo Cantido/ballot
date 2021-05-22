@@ -41,7 +41,7 @@ defmodule Ballot.ScoreVote do
     }
   end
 
-  defimpl Ballot.Vote, for: __MODULE__ do
+  defimpl Ballot.Vote do
     def candidates(vote) do
       Enum.map(vote.scores, & &1.candidate)
     end

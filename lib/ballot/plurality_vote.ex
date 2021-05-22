@@ -15,7 +15,7 @@ defmodule Ballot.PluralityVote do
     }
   end
 
-  defimpl Ballot.Vote, for: __MODULE__ do
+  defimpl Ballot.Vote do
     def candidates(vote) do
       [vote.choice]
     end
