@@ -48,7 +48,7 @@ defmodule Ballot.Election do
   end
 
   defp vote_for_candidates_in_election?(election, vote) do
-    vote_candidates = vote.__struct__.candidates(vote) |> MapSet.new()
+    vote_candidates = Ballot.Vote.candidates(vote) |> MapSet.new()
     MapSet.subset?(vote_candidates, election.candidates)
   end
 end

@@ -3,7 +3,6 @@ defmodule Ballot.RankedVote do
   A vote where candidates are put in absolute order from most desirable to least desirable,
   i.e. `[first_choice, second_choice, third_choice]`, etc.
   """
-  @behaviour Ballot.Vote
   @enforce_keys [
     :id,
     :choices
@@ -25,7 +24,9 @@ defmodule Ballot.RankedVote do
     }
   end
 
-  def candidates(vote) do
-    vote.choices
+  defimpl Ballot.Vote, for: __MODULE__ do
+    def candidates(vote) do
+      vote.choices
+    end
   end
 end

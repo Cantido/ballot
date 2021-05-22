@@ -1,6 +1,4 @@
 defmodule Ballot.ApprovalVote do
-  @behaviour Ballot.Vote
-
   @enforce_keys [
     :id,
     :choices

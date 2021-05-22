@@ -1,6 +1,4 @@
 defmodule Ballot.PluralityVote do
-  @behaviour Ballot.Vote
-
   @enforce_keys [
     :id,
     :choice
@@ -17,10 +15,9 @@ defmodule Ballot.PluralityVote do
     }
   end
 
-  @doc """
-  Returns a list of all candidates included in this vote in no particular order.
-  """
-  def candidates(vote) do
-    [vote.choice]
+  defimpl Ballot.Vote, for: __MODULE__ do
+    def candidates(vote) do
+      [vote.choice]
+    end
   end
 end
