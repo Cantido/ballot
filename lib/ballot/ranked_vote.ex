@@ -28,5 +28,9 @@ defmodule Ballot.RankedVote do
     def candidates(vote) do
       vote.choices
     end
+
+    def id(vote) do
+      vote.id
+    end
   end
 end

@@ -19,5 +19,9 @@ defmodule Ballot.PluralityVote do
     def candidates(vote) do
       [vote.choice]
     end
+
+    def id(vote) do
+      vote.id
+    end
   end
 end

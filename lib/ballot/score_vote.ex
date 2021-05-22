@@ -45,5 +45,9 @@ defmodule Ballot.ScoreVote do
     def candidates(vote) do
       Enum.map(vote.scores, & &1.candidate)
     end
+
+    def id(vote) do
+      vote.id
+    end
   end
 end
