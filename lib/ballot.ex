@@ -1,8 +1,54 @@
 defmodule Ballot do
   @moduledoc """
   Ballot is a vote-counting library.
-  At its simplest, its functions are just fancier ways of calling `Enum.count/1` or `Enum.frequencies/1`.
-  Arguments are all plain Elixir data structures, the interpretation of which is documented for each counting strategy.
+
+  Candidates are usually represented by a string, which could be something like your candidate's ID number, or name.
+  You can use anything that can be compared by value.
+
+  In the simplest voting system, first-past-the-post AKA plurality voting, all you need is an enumerable of those candidate values.
+
+      iex> Ballot.plurality(["A", "A", "A", "B", "B"])
+      ["A"]
+
+  More complex votes are represented by plain Elixir data structures.
+  For example, votes for any ranked-choice voting system, like Instant Runoff,
+  are just lists with values at the front of the list being a higher rank than values at the end of the list.
+
+      iex> votes = [
+      ...>   ["A", "B"],
+      ...>   ["B", "C"],
+      ...>   ["C"],
+      ...>   ["C"]
+      ...> ]
+      iex> Ballot.instant_runoff(votes)
+      "C"
+      iex> Ballot.dowdall(votes)
+      ["C"]
+      iex> Ballot.borda(votes)
+      ["B", "C"]
+
+  Approval voting is similar, but votes are lists of all the candidates a voter approves of, so order doesn't matter.
+
+  iex> votes = [
+  ...>   ["A", "B"],
+  ...>   ["B", "C"],
+  ...> ]
+  iex> Ballot.approval(votes)
+  ["B"]
+
+  In score voting, each vote is a map of candidates to a numeric score.
+
+      iex> votes = [
+      ...>   %{"A" => 5, "B" => 4, "C" => 1},
+      ...>   %{"A" => 1, "B" => 4, "C" => 1},
+      ...> ]
+      iex> Ballot.score(votes)
+      ["B"]
+
+    In case of ties, these functions return a list of all the winners.
+
+    iex> Ballot.plurality(["A", "A", "B", "B"])
+    ["A", "B"]
   """
 
   @doc """
