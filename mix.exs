@@ -1,9 +1,9 @@
-defmodule Ballot.MixProject do
+defmodule BallotCounter.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :ballot,
+      app: :ballot_counter,
       version: "0.1.0",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,

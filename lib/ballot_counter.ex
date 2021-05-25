@@ -1,4 +1,4 @@
-defmodule Ballot do
+defmodule BallotCounter do
   @moduledoc """
   A vote-counting library.
 
@@ -7,7 +7,7 @@ defmodule Ballot do
 
   In the simplest voting system, first-past-the-post AKA plurality voting, all you need is an enumerable of those candidate values.
 
-      iex> Ballot.plurality(["A", "A", "A", "B", "B"])
+      iex> BallotCounter.plurality(["A", "A", "A", "B", "B"])
       "A"
 
   More complex votes are represented by plain Elixir data structures.
@@ -20,11 +20,11 @@ defmodule Ballot do
       ...>   ["C"],
       ...>   ["C"]
       ...> ]
-      iex> Ballot.instant_runoff(votes)
+      iex> BallotCounter.instant_runoff(votes)
       "C"
-      iex> Ballot.dowdall(votes)
+      iex> BallotCounter.dowdall(votes)
       "C"
-      iex> Ballot.borda(votes) |> Enum.sort()
+      iex> BallotCounter.borda(votes) |> Enum.sort()
       ["B", "C"]
 
   Approval voting is similar, but votes are lists of all the candidates a voter approves of, so order doesn't matter.
@@ -33,7 +33,7 @@ defmodule Ballot do
       ...>   ["A", "B"],
       ...>   ["B", "C"],
       ...> ]
-      iex> Ballot.approval(votes)
+      iex> BallotCounter.approval(votes)
       "B"
 
   In score voting, each vote is a map of candidates to a numeric score.
@@ -42,12 +42,12 @@ defmodule Ballot do
       ...>   %{"A" => 5, "B" => 4, "C" => 1},
       ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
-      iex> Ballot.score(votes)
+      iex> BallotCounter.score(votes)
       "B"
 
   In case of ties, these functions return a list of all the winners.
 
-      iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
+      iex> BallotCounter.plurality(["A", "A", "B", "B"]) |> Enum.sort()
       ["A", "B"]
 
   ## Performance
@@ -64,12 +64,12 @@ defmodule Ballot do
 
   ## Examples
 
-      iex> Ballot.plurality(["A", "A", "A", "B", "B"])
+      iex> BallotCounter.plurality(["A", "A", "A", "B", "B"])
       "A"
 
   Returns a list in case of ties.
 
-      iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
+      iex> BallotCounter.plurality(["A", "A", "B", "B"]) |> Enum.sort()
       ["A", "B"]
   """
   @spec plurality(Enumerable.t()) :: any()
@@ -98,7 +98,7 @@ defmodule Ballot do
     ...>   ["A"],
     ...>   ["B"]
     ...> ]
-    iex> Ballot.instant_runoff(votes)
+    iex> BallotCounter.instant_runoff(votes)
     "A"
 
   If no candidate got at least fifty percent of the vote,
@@ -118,7 +118,7 @@ defmodule Ballot do
       ...>   ["C"],
       ...>   ["C"]
       ...> ]
-      iex> Ballot.instant_runoff(votes)
+      iex> BallotCounter.instant_runoff(votes)
       "C"
 
   You can also pass in a required win percentage greater than 50.0,
@@ -137,7 +137,7 @@ defmodule Ballot do
       ...>   ["D", "F"],
       ...>   ["E", "F"],
       ...> ]
-      iex> Ballot.instant_runoff(votes, required_percentage: 75.0)
+      iex> BallotCounter.instant_runoff(votes, required_percentage: 75.0)
       "F"
 
   It is impossible for multiple candidates to tie using this function,
@@ -210,7 +210,7 @@ defmodule Ballot do
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> Ballot.borda(votes)
+      iex> BallotCounter.borda(votes)
       "B"
 
   You also start the counting at zero, instead of one, so the last place choice gets zero points.
@@ -222,7 +222,7 @@ defmodule Ballot do
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> Ballot.borda(votes, starting_at: 0)
+      iex> BallotCounter.borda(votes, starting_at: 0)
       "B"
 
   Returns a list in case of ties.
@@ -231,7 +231,7 @@ defmodule Ballot do
       ...>   ["A", "C"],
       ...>   ["B", "D"],
       ...> ]
-      iex> Ballot.borda(votes) |> Enum.sort()
+      iex> BallotCounter.borda(votes) |> Enum.sort()
       ["A", "B"]
   """
   @spec borda(Enumerable.t(), Keyword.t()) :: any()
@@ -273,7 +273,7 @@ defmodule Ballot do
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> Ballot.dowdall(votes)
+      iex> BallotCounter.dowdall(votes)
       "B"
 
   Returns a list in case of ties.
@@ -282,7 +282,7 @@ defmodule Ballot do
       ...>   ["A", "C"],
       ...>   ["B", "D"],
       ...> ]
-      iex> Ballot.dowdall(votes) |> Enum.sort()
+      iex> BallotCounter.dowdall(votes) |> Enum.sort()
       ["A", "B"]
   """
   @spec dowdall(Enumerable.t()) :: any()
@@ -313,7 +313,7 @@ defmodule Ballot do
       ...>   ["A", "B"],
       ...>   ["B", "C"],
       ...> ]
-      iex> Ballot.approval(votes)
+      iex> BallotCounter.approval(votes)
       "B"
 
   Each ballot can only approve of any candidate once.
@@ -322,7 +322,7 @@ defmodule Ballot do
       ...>   ["A", "A", "A", "B"],
       ...>   ["B", "C"],
       ...> ]
-      iex> Ballot.approval(votes)
+      iex> BallotCounter.approval(votes)
       "B"
 
   Using `MapSet`s for each ballot would not be out-of-place here.
@@ -331,7 +331,7 @@ defmodule Ballot do
       ...>   MapSet.new(["A", "A", "A", "B"]),
       ...>   MapSet.new(["B", "C"]),
       ...> ]
-      iex> Ballot.approval(votes)
+      iex> BallotCounter.approval(votes)
       "B"
 
   Returns a list in case of ties.
@@ -340,7 +340,7 @@ defmodule Ballot do
       ...>   ["A", "C"],
       ...>   ["B", "D"],
       ...> ]
-      iex> Ballot.approval(votes) |> Enum.sort()
+      iex> BallotCounter.approval(votes) |> Enum.sort()
       ["A", "B", "C", "D"]
   """
   @spec approval(Enumerable.t()) :: any()
@@ -367,7 +367,7 @@ defmodule Ballot do
       ...>   %{"A" => 5, "B" => 4, "C" => 1},
       ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
-      iex> Ballot.score(votes)
+      iex> BallotCounter.score(votes)
       "B"
 
   Returns a list in case of ties.
@@ -376,7 +376,7 @@ defmodule Ballot do
       ...>   %{"A" => 5, "B" => 5, "C" => 1},
       ...>   %{"A" => 5, "B" => 5, "C" => 1},
       ...> ]
-      iex> Ballot.score(votes) |> Enum.sort()
+      iex> BallotCounter.score(votes) |> Enum.sort()
       ["A", "B"]
   """
   @spec score(Enumerable.t()) :: any()
