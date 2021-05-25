@@ -51,6 +51,11 @@ defmodule BallotCounter do
       iex> BallotCounter.plurality(["A", "A", "B", "B"]) |> Enum.sort()
       ["A", "B"]
 
+  In case nobody wins, `nil` is returned.
+
+      iex> BallotCounter.quota(["A", "A", "B", "B"], 0.60)
+      nil
+
   ## Performance
 
   All counting functions traverse the input enumerables as few times as possible.
@@ -77,7 +82,46 @@ defmodule BallotCounter do
   def plurality(ballots) do
     Stream.map(ballots, &{&1, 1})
     |> all_max_scores()
-    |> winner_or_tie()
+    |> winner_or_tie_or_none()
+  end
+
+  @doc """
+  Plurality with a minimum percentage of the vote.
+
+  Every candidate that receives greater than `q`% of votes is a winner.
+
+  If the parameter `q` is greater than one, it is assumed to be a percentage.
+  Equal to or less than one, it is assumed to be a fraction.
+
+  ## Examples
+
+      iex> ballots = [
+      ...>   "A",
+      ...>   "A",
+      ...>   "B"
+      ...> ]
+      iex> BallotCounter.quota(ballots, 60)
+      "A"
+      iex> BallotCounter.quota(ballots, 0.30) |> Enum.sort()
+      ["A", "B"]
+      iex> BallotCounter.quota(ballots, 70)
+      nil
+
+  """
+  def quota(ballots, q) when is_number(q) and q > 0 and q <= 100 do
+    quota_fraction =
+      if q > 1 do
+        q / 100
+      else
+        q
+      end
+
+    Enum.frequencies(ballots)
+    |> Enum.filter(fn {_candidate, vote_count} ->
+      vote_count / Enum.count(ballots) >= quota_fraction
+    end)
+    |> Enum.map(&elem(&1, 0))
+    |> winner_or_tie_or_none()
   end
 
   @doc """
@@ -185,7 +229,7 @@ defmodule BallotCounter do
 
     if best_percentage > win_percentage do
       # There can't possibly be a tie, this just unwraps the list
-      winner_or_tie(best_candidates)
+      winner_or_tie_or_none(best_candidates)
     else
       do_instant_runoff(ballots, worst_candidates ++ losers, opts)
     end
@@ -249,7 +293,7 @@ defmodule BallotCounter do
       |> Stream.map(fn {candidate, index} -> {candidate, index + starting_at} end)
     end)
     |> all_max_scores()
-    |> winner_or_tie()
+    |> winner_or_tie_or_none()
   end
 
   @doc """
@@ -296,7 +340,7 @@ defmodule BallotCounter do
       end)
     end)
     |> all_max_scores()
-    |> winner_or_tie()
+    |> winner_or_tie_or_none()
   end
 
   @doc """
@@ -351,7 +395,7 @@ defmodule BallotCounter do
     |> Stream.flat_map(&Stream.uniq/1)
     |> Stream.map(&{&1, 1})
     |> all_max_scores()
-    |> winner_or_tie()
+    |> winner_or_tie_or_none()
   end
 
   @doc """
@@ -386,11 +430,12 @@ defmodule BallotCounter do
     ballots
     |> Stream.flat_map(&Map.to_list/1)
     |> all_max_scores()
-    |> winner_or_tie()
+    |> winner_or_tie_or_none()
   end
 
-  defp winner_or_tie([winner]), do: winner
-  defp winner_or_tie(results) when is_list(results), do: results
+  defp winner_or_tie_or_none([]), do: nil
+  defp winner_or_tie_or_none([winner]), do: winner
+  defp winner_or_tie_or_none(results) when is_list(results), do: results
 
   defp all_max_scores(scores) do
     [{first_candidate, first_score}] = Stream.take(scores, 1) |> Enum.to_list()
