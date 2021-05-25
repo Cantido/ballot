@@ -72,6 +72,7 @@ defmodule Ballot do
       iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
       ["A", "B"]
   """
+  @spec plurality(Enumerable.t()) :: any()
   def plurality(votes) do
     Stream.map(votes, &{&1, 1})
     |> all_max_scores()
@@ -142,6 +143,7 @@ defmodule Ballot do
   It is impossible for multiple candidates to tie using this function,
   since the required percentage to win must be greater than fifty percent.
   """
+  @spec instant_runoff(Enumerable.t(), Keyword.t()) :: any()
   def instant_runoff(ranked_votes, opts \\ []) do
     do_instant_runoff(ranked_votes, [], opts)
   end
@@ -233,6 +235,7 @@ defmodule Ballot do
       iex> Ballot.borda(votes) |> Enum.sort()
       ["A", "B"]
   """
+  @spec borda(Enumerable.t(), Keyword.t()) :: any()
   def borda(ranked_votes, opts \\ []) do
     starting_at = Keyword.get(opts, :starting_at, 1)
     if starting_at not in [0, 1] do
@@ -283,6 +286,7 @@ defmodule Ballot do
       iex> Ballot.dowdall(votes) |> Enum.sort()
       ["A", "B"]
   """
+  @spec dowdall(Enumerable.t()) :: any()
   def dowdall(ranked_votes) do
     ranked_votes
     |> Stream.flat_map(fn vote ->
@@ -340,6 +344,7 @@ defmodule Ballot do
       iex> Ballot.approval(votes) |> Enum.sort()
       ["A", "B", "C", "D"]
   """
+  @spec approval(Enumerable.t()) :: any()
   def approval(approval_votes) do
     approval_votes
     |> Stream.flat_map(&Stream.uniq/1)
@@ -375,6 +380,7 @@ defmodule Ballot do
       iex> Ballot.score(votes) |> Enum.sort()
       ["A", "B"]
   """
+  @spec score(Enumerable.t()) :: any()
   def score(score_votes) do
     score_votes
     |> Stream.flat_map(&Map.to_list/1)
