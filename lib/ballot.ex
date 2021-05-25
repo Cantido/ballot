@@ -284,7 +284,8 @@ defmodule Ballot do
       "B"
   """
   def approval(approval_votes) do
-    Stream.concat(approval_votes)
+    approval_votes
+    |> Stream.flat_map(&Stream.uniq/1)
     |> Stream.map(&{&1, 1})
     |> all_max_scores()
     |> winner_or_tie()
