@@ -8,18 +8,11 @@ defmodule Ballot.Counting do
 
   ## Examples
 
-      iex> votes = [
-      ...>  Ballot.PluralityVote.new("A"),
-      ...>  Ballot.PluralityVote.new("A"),
-      ...>  Ballot.PluralityVote.new("A"),
-      ...>  Ballot.PluralityVote.new("B"),
-      ...>  Ballot.PluralityVote.new("B"),
-      ...> ]
-      iex> Ballot.Counting.plurality(votes)
+      iex> Ballot.Counting.plurality(["A", "A", "A", "B", "B"])
       ["A"]
   """
   def plurality(votes) do
-    freq = Enum.frequencies_by(votes, & &1.choice)
+    freq = Enum.frequencies(votes)
 
     # select all winners with max votes so we can recognize ties.
     max_votes = Enum.max(Map.values(freq))
@@ -42,9 +35,9 @@ defmodule Ballot.Counting do
   first-choice votes wins.
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["A"]),
-      ...>   Ballot.RankedVote.new(["A"]),
-      ...>   Ballot.RankedVote.new(["B"])
+      ...>   ["A"],
+      ...>   ["A"],
+      ...>   ["B"]
       ...> ]
       iex> Ballot.Counting.instant_runoff(votes)
       "A"
@@ -61,10 +54,10 @@ defmodule Ballot.Counting do
     granting "C" the victory with four out of four votes.
 
     iex> votes = [
-    ...>   Ballot.RankedVote.new(["A", "C"]),
-    ...>   Ballot.RankedVote.new(["B", "C"]),
-    ...>   Ballot.RankedVote.new(["C"]),
-    ...>   Ballot.RankedVote.new(["C"])
+    ...>   ["A", "C"],
+    ...>   ["B", "C"],
+    ...>   ["C"],
+    ...>   ["C"]
     ...> ]
     iex> Ballot.Counting.instant_runoff(votes)
     "C"
@@ -77,13 +70,13 @@ defmodule Ballot.Counting do
     Candidate "F" then wins.
 
     iex> votes = [
-    ...>   Ballot.RankedVote.new(["A", "F"]),
-    ...>   Ballot.RankedVote.new(["A", "F"]),
-    ...>   Ballot.RankedVote.new(["A", "F"]),
-    ...>   Ballot.RankedVote.new(["B", "F"]),
-    ...>   Ballot.RankedVote.new(["C", "F"]),
-    ...>   Ballot.RankedVote.new(["D", "F"]),
-    ...>   Ballot.RankedVote.new(["E", "F"]),
+    ...>   ["A", "F"],
+    ...>   ["A", "F"],
+    ...>   ["A", "F"],
+    ...>   ["B", "F"],
+    ...>   ["C", "F"],
+    ...>   ["D", "F"],
+    ...>   ["E", "F"],
     ...> ]
     iex> Ballot.Counting.instant_runoff(votes, required_percentage: 75.0)
     "F"
@@ -96,7 +89,7 @@ defmodule Ballot.Counting do
     tallies =
       Enum.reduce(ranked_votes, %{}, fn vote, acc ->
         candidate_id =
-          vote.choices
+          vote
           |> Enum.drop_while(&(&1 in losers))
           |> Enum.at(0)
 
@@ -146,7 +139,7 @@ defmodule Ballot.Counting do
   Each vote grants points to all candidates based on their rank in the vote.
   For example, in this vote:
 
-      Ballot.RankedVote.new(["A", "B"])
+      ["A", "B"]
 
   Candidate "A" is granted two points, and candidate "B" is granted one point.
 
@@ -157,8 +150,8 @@ defmodule Ballot.Counting do
   and candidate "C" is last with three points.
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["A", "B", "C"]),
-      ...>   Ballot.RankedVote.new(["B", "C", "A"]),
+      ...>   ["A", "B", "C"],
+      ...>   ["B", "C", "A"],
       ...> ]
       iex> Ballot.Counting.borda(votes)
       ["B"]
@@ -169,8 +162,8 @@ defmodule Ballot.Counting do
   candidate "A" gets two points, and candidate "C" gets one point.
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["A", "B", "C"]),
-      ...>   Ballot.RankedVote.new(["B", "C", "A"]),
+      ...>   ["A", "B", "C"],
+      ...>   ["B", "C", "A"],
       ...> ]
       iex> Ballot.Counting.borda(votes, starting_at: 0)
       ["B"]
@@ -184,9 +177,9 @@ defmodule Ballot.Counting do
     points =
       ranked_votes
       |> Enum.flat_map(fn vote ->
-        count = Enum.count(vote.choices)
+        count = Enum.count(vote)
 
-        vote.choices
+        vote
         |> Enum.with_index()
         |> Enum.map(fn {choice, index} -> {choice, count - index + (starting_at - 1)} end)
       end)
@@ -225,8 +218,8 @@ defmodule Ballot.Counting do
   - "C" earns 0.88 points
 
       iex> votes = [
-      ...>   Ballot.RankedVote.new(["A", "B", "C"]),
-      ...>   Ballot.RankedVote.new(["B", "C", "A"]),
+      ...>   ["A", "B", "C"],
+      ...>   ["B", "C", "A"],
       ...> ]
       iex> Ballot.Counting.dowdall(votes)
       ["B"]
@@ -236,7 +229,7 @@ defmodule Ballot.Counting do
     points =
       ranked_votes
       |> Enum.flat_map(fn vote ->
-        vote.choices
+        vote
         |> Enum.with_index()
         |> Enum.map(fn {choice, index} ->
           {choice, 1 / (index + 1)}
@@ -267,8 +260,8 @@ defmodule Ballot.Counting do
   whereas candidates "A" and "C" only have one.
 
       iex> votes = [
-      ...>   Ballot.ApprovalVote.new(["A", "B"]),
-      ...>   Ballot.ApprovalVote.new(["B", "C"]),
+      ...>   ["A", "B"],
+      ...>   ["B", "C"],
       ...> ]
       iex> Ballot.Counting.approval(votes)
       ["B"]
@@ -277,7 +270,7 @@ defmodule Ballot.Counting do
     points =
       approval_votes
       |> Enum.flat_map(fn vote ->
-        vote.choices
+        vote
         |> Enum.map(fn choice ->
           {choice, 1}
         end)
@@ -303,8 +296,8 @@ defmodule Ballot.Counting do
   Candidate "A" ends with a score of 3, and "C" with a score of 1.
 
       iex> votes = [
-      ...>   Ballot.ScoreVote.new(%{"A" => 5, "B" => 4, "C" => 1}),
-      ...>   Ballot.ScoreVote.new(%{"A" => 1, "B" => 4, "C" => 1}),
+      ...>   %{"A" => 5, "B" => 4, "C" => 1},
+      ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
       iex> Ballot.Counting.score(votes)
       ["B"]
@@ -312,12 +305,7 @@ defmodule Ballot.Counting do
   def score(score_votes) do
     points =
       score_votes
-      |> Enum.flat_map(fn vote ->
-        vote.scores
-        |> Enum.map(fn candidate_score ->
-          {candidate_score.candidate, candidate_score.score}
-        end)
-      end)
+      |> Enum.flat_map(&Map.to_list/1)
       |> Enum.reduce(%{}, fn {candidate_id, score}, acc ->
         Map.update(acc, candidate_id, score, &(&1 + score))
       end)
