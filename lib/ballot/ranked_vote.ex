@@ -20,10 +20,4 @@ defmodule Ballot.RankedVote do
       choices: candidate_ids
     }
   end
-
-  defimpl Ballot.Vote do
-    def candidates(vote) do
-      vote.choices
-    end
-  end
 end

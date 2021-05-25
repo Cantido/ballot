@@ -37,10 +37,4 @@ defmodule Ballot.ScoreVote do
       scores: score_structs
     }
   end
-
-  defimpl Ballot.Vote do
-    def candidates(vote) do
-      Enum.map(vote.scores, & &1.candidate)
-    end
-  end
 end

@@ -11,10 +11,4 @@ defmodule Ballot.ApprovalVote do
       choices: choices
     }
   end
-
-  defimpl Ballot.Vote do
-    def candidates(vote) do
-      vote.choices
-    end
-  end
 end

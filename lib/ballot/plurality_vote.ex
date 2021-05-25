@@ -11,10 +11,4 @@ defmodule Ballot.PluralityVote do
       choice: choice
     }
   end
-
-  defimpl Ballot.Vote do
-    def candidates(vote) do
-      [vote.choice]
-    end
-  end
 end
