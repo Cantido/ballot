@@ -1,48 +1,49 @@
 defmodule BallotCounter do
   @moduledoc """
-  A vote-counting library.
+  A ballot-counting library implementing several voting methods.
 
   Candidates are usually represented by a string, which could be something like your candidate's ID number, or name.
   You can use anything that can be compared by value.
 
-  In the simplest voting system, first-past-the-post AKA plurality voting, all you need is an enumerable of those candidate values.
+  In the simplest voting system, first-past-the-post AKA plurality voting, these IDs *are* the ballots.
+  To count them, put them in a list.
 
       iex> BallotCounter.plurality(["A", "A", "A", "B", "B"])
       "A"
 
-  More complex votes are represented by plain Elixir data structures.
-  For example, votes for any ranked-choice voting system, like Instant Runoff,
+  More complex ballots are represented by plain Elixir data structures.
+  For example, ballots for any ranked-choice voting system, like Instant Runoff,
   are just lists with values at the front of the list being a higher rank than values at the end of the list.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "B"],
       ...>   ["B", "C"],
       ...>   ["C"],
       ...>   ["C"]
       ...> ]
-      iex> BallotCounter.instant_runoff(votes)
+      iex> BallotCounter.instant_runoff(ballots)
       "C"
-      iex> BallotCounter.dowdall(votes)
+      iex> BallotCounter.dowdall(ballots)
       "C"
-      iex> BallotCounter.borda(votes) |> Enum.sort()
+      iex> BallotCounter.borda(ballots) |> Enum.sort()
       ["B", "C"]
 
-  Approval voting is similar, but votes are lists of all the candidates a voter approves of, so order doesn't matter.
+  Approval voting is similar, but ballots are lists of all the candidates a voter approves of, so order doesn't matter.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "B"],
       ...>   ["B", "C"],
       ...> ]
-      iex> BallotCounter.approval(votes)
+      iex> BallotCounter.approval(ballots)
       "B"
 
-  In score voting, each vote is a map of candidates to a numeric score.
+  In score voting, each ballot is a map of candidates to a numeric score.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   %{"A" => 5, "B" => 4, "C" => 1},
       ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
-      iex> BallotCounter.score(votes)
+      iex> BallotCounter.score(ballots)
       "B"
 
   In case of ties, these functions return a list of all the winners.
@@ -73,8 +74,8 @@ defmodule BallotCounter do
       ["A", "B"]
   """
   @spec plurality(Enumerable.t()) :: any()
-  def plurality(votes) do
-    Stream.map(votes, &{&1, 1})
+  def plurality(ballots) do
+    Stream.map(ballots, &{&1, 1})
     |> all_max_scores()
     |> winner_or_tie()
   end
@@ -84,26 +85,26 @@ defmodule BallotCounter do
 
   Counts first place votes, and if the winner has more than 50% of the vote, they win.
   If not, the candidate with the least number of first-choice votes is dropped,
-  and the votes are tallied again,
+  and the ballots are tallied again,
   this time taking the second choice of any votes that had the loser first.
   Ties for last place result in multiple candidates being removed in one round.
 
   ## Examples
 
   In the simplest case, the candidate with more than fifty percent of the
-  first-choice votes wins.
+  first-choice ballots wins.
 
-    iex> votes = [
+    iex> ballots = [
     ...>   ["A"],
     ...>   ["A"],
     ...>   ["B"]
     ...> ]
-    iex> BallotCounter.instant_runoff(votes)
+    iex> BallotCounter.instant_runoff(ballots)
     "A"
 
   If no candidate got at least fifty percent of the vote,
   the candidate with the smallest amount of votes is eliminated.
-  This means you look to the second choice on any votes that have that
+  This means you look to the second choice on any ballots that have that
   candidate as first choice.
 
   In this example, no candidates win on the first pass,
@@ -112,13 +113,13 @@ defmodule BallotCounter do
   Votes with `"A"` and `"B"` first will then fall back to their next choice,
   granting `"C"` the victory with four out of four votes.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "C"],
       ...>   ["B", "C"],
       ...>   ["C"],
       ...>   ["C"]
       ...> ]
-      iex> BallotCounter.instant_runoff(votes)
+      iex> BallotCounter.instant_runoff(ballots)
       "C"
 
   You can also pass in a required win percentage greater than 50.0,
@@ -128,7 +129,7 @@ defmodule BallotCounter do
   In the second round, `"A"` then loses, and their votes count for `"F"`.
   Candidate `"F"` then wins.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "F"],
       ...>   ["A", "F"],
       ...>   ["A", "F"],
@@ -137,21 +138,21 @@ defmodule BallotCounter do
       ...>   ["D", "F"],
       ...>   ["E", "F"],
       ...> ]
-      iex> BallotCounter.instant_runoff(votes, required_percentage: 75.0)
+      iex> BallotCounter.instant_runoff(ballots, required_percentage: 75.0)
       "F"
 
   It is impossible for multiple candidates to tie using this function,
   since the required percentage to win must be greater than fifty percent.
   """
   @spec instant_runoff(Enumerable.t(), Keyword.t()) :: any()
-  def instant_runoff(ranked_votes, opts \\ []) do
-    do_instant_runoff(ranked_votes, [], opts)
+  def instant_runoff(ballots, opts \\ []) do
+    do_instant_runoff(ballots, [], opts)
   end
 
-  defp do_instant_runoff(ranked_votes, losers, opts) do
+  defp do_instant_runoff(ballots, losers, opts) do
     tallies =
-      Stream.map(ranked_votes, fn vote ->
-        vote
+      Stream.map(ballots, fn ballot ->
+        ballot
         |> Enum.drop_while(&(&1 in losers))
         |> Enum.at(0)
       end)
@@ -186,7 +187,7 @@ defmodule BallotCounter do
       # There can't possibly be a tie, this just unwraps the list
       winner_or_tie(best_candidates)
     else
-      do_instant_runoff(ranked_votes, worst_candidates ++ losers, opts)
+      do_instant_runoff(ballots, worst_candidates ++ losers, opts)
     end
   end
 
@@ -206,11 +207,11 @@ defmodule BallotCounter do
   Candidate `"A"` is in second place with four points,
   and candidate `"C"` is last with three points.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> BallotCounter.borda(votes)
+      iex> BallotCounter.borda(ballots)
       "B"
 
   You also start the counting at zero, instead of one, so the last place choice gets zero points.
@@ -218,34 +219,34 @@ defmodule BallotCounter do
   Candidate `"B"` still wins, but with three points,
   candidate `"A"` gets two points, and candidate `"C"` gets one point.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> BallotCounter.borda(votes, starting_at: 0)
+      iex> BallotCounter.borda(ballots, starting_at: 0)
       "B"
 
   Returns a list in case of ties.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "C"],
       ...>   ["B", "D"],
       ...> ]
-      iex> BallotCounter.borda(votes) |> Enum.sort()
+      iex> BallotCounter.borda(ballots) |> Enum.sort()
       ["A", "B"]
   """
   @spec borda(Enumerable.t(), Keyword.t()) :: any()
-  def borda(ranked_votes, opts \\ []) do
+  def borda(ballots, opts \\ []) do
     starting_at = Keyword.get(opts, :starting_at, 1)
     if starting_at not in [0, 1] do
       raise ":starting_at must be 0 or 1"
     end
 
-    ranked_votes
-    |> Stream.flat_map(fn vote ->
-      Enum.reverse(vote)
+    ballots
+    |> Stream.flat_map(fn ballot ->
+      Enum.reverse(ballot)
       |> Stream.with_index()
-      |> Stream.map(fn {choice, index} -> {choice, index + starting_at} end)
+      |> Stream.map(fn {candidate, index} -> {candidate, index + starting_at} end)
     end)
     |> all_max_scores()
     |> winner_or_tie()
@@ -269,29 +270,29 @@ defmodule BallotCounter do
 
   In this example, `"B"` earns 1.50 points, `"A"` earns 1.33 points, and `"C"` earns 0.88 points.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> BallotCounter.dowdall(votes)
+      iex> BallotCounter.dowdall(ballots)
       "B"
 
   Returns a list in case of ties.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "C"],
       ...>   ["B", "D"],
       ...> ]
-      iex> BallotCounter.dowdall(votes) |> Enum.sort()
+      iex> BallotCounter.dowdall(ballots) |> Enum.sort()
       ["A", "B"]
   """
   @spec dowdall(Enumerable.t()) :: any()
-  def dowdall(ranked_votes) do
-    ranked_votes
-    |> Stream.flat_map(fn vote ->
-      Stream.with_index(vote)
-      |> Stream.map(fn {choice, index} ->
-        {choice, 1 / (index + 1)}
+  def dowdall(ballot) do
+    ballot
+    |> Stream.flat_map(fn ballot ->
+      Stream.with_index(ballot)
+      |> Stream.map(fn {candidate, index} ->
+        {candidate, 1 / (index + 1)}
       end)
     end)
     |> all_max_scores()
@@ -304,48 +305,49 @@ defmodule BallotCounter do
   This is different from ranked-choice counting strategies
   because candidates are not ranked among one another,
   and the voter only chooses the candidates they approve of.
+
   ## Examples
 
   Candidate `"B"` wins because it has two approvals,
   whereas candidates `"A"` and `"C"` only have one.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "B"],
       ...>   ["B", "C"],
       ...> ]
-      iex> BallotCounter.approval(votes)
+      iex> BallotCounter.approval(ballots)
       "B"
 
   Each ballot can only approve of any candidate once.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "A", "A", "B"],
       ...>   ["B", "C"],
       ...> ]
-      iex> BallotCounter.approval(votes)
+      iex> BallotCounter.approval(ballots)
       "B"
 
   Using `MapSet`s for each ballot would not be out-of-place here.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   MapSet.new(["A", "A", "A", "B"]),
       ...>   MapSet.new(["B", "C"]),
       ...> ]
-      iex> BallotCounter.approval(votes)
+      iex> BallotCounter.approval(ballots)
       "B"
 
   Returns a list in case of ties.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   ["A", "C"],
       ...>   ["B", "D"],
       ...> ]
-      iex> BallotCounter.approval(votes) |> Enum.sort()
+      iex> BallotCounter.approval(ballots) |> Enum.sort()
       ["A", "B", "C", "D"]
   """
   @spec approval(Enumerable.t()) :: any()
-  def approval(approval_votes) do
-    approval_votes
+  def approval(ballots) do
+    ballots
     |> Stream.flat_map(&Stream.uniq/1)
     |> Stream.map(&{&1, 1})
     |> all_max_scores()
@@ -355,7 +357,7 @@ defmodule BallotCounter do
   @doc """
   Tallies each candidate's average score.
 
-  Each vote is a map of the candidate to their score.
+  Each ballot is a map of the candidate to their score.
   Scores can be any numeric value, and the candidate with the highest average is the winner.
 
   ## Examples
@@ -363,25 +365,25 @@ defmodule BallotCounter do
   In this example, candidate `"B"` wins with an average rating of 4.
   Candidate `"A"` ends with a score of 3, and `"C"` with a score of 1.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   %{"A" => 5, "B" => 4, "C" => 1},
       ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
-      iex> BallotCounter.score(votes)
+      iex> BallotCounter.score(ballots)
       "B"
 
   Returns a list in case of ties.
 
-      iex> votes = [
+      iex> ballots = [
       ...>   %{"A" => 5, "B" => 5, "C" => 1},
       ...>   %{"A" => 5, "B" => 5, "C" => 1},
       ...> ]
-      iex> BallotCounter.score(votes) |> Enum.sort()
+      iex> BallotCounter.score(ballots) |> Enum.sort()
       ["A", "B"]
   """
   @spec score(Enumerable.t()) :: any()
-  def score(score_votes) do
-    score_votes
+  def score(ballots) do
+    ballots
     |> Stream.flat_map(&Map.to_list/1)
     |> all_max_scores()
     |> winner_or_tie()
@@ -391,10 +393,10 @@ defmodule BallotCounter do
   defp winner_or_tie(results) when is_list(results), do: results
 
   defp all_max_scores(scores) do
-    [{first_key, first_score}] = Stream.take(scores, 1) |> Enum.to_list()
+    [{first_candidate, first_score}] = Stream.take(scores, 1) |> Enum.to_list()
     rest = Stream.drop(scores, 1)
     {_scores, winners, _winning_score} =
-      Enum.reduce(rest, {%{first_key => first_score}, [first_key], first_score}, fn {candidate, score}, {scores, winners, winning_score} ->
+      Enum.reduce(rest, {%{first_candidate => first_score}, [first_candidate], first_score}, fn {candidate, score}, {scores, winners, winning_score} ->
         {new_score, scores} = Map.get_and_update(scores, candidate, fn current_score ->
           new_score =
             if is_nil(current_score) do
