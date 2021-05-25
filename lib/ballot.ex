@@ -157,8 +157,7 @@ defmodule Ballot do
       end)
       |> Enum.frequencies()
 
-    first_key = Enum.at(tallies, 0) |> elem(0)
-    first_val = tallies[first_key]
+    {first_key, first_val} = Enum.at(tallies, 0)
 
     {worst_candidates, _worst_votes, best_candidates, best_votes, total_votes} =
       Map.drop(tallies, [first_key])
