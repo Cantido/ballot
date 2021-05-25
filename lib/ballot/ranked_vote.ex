@@ -4,11 +4,9 @@ defmodule Ballot.RankedVote do
   i.e. `[first_choice, second_choice, third_choice]`, etc.
   """
   @enforce_keys [
-    :id,
     :choices
   ]
   defstruct [
-    id: nil,
     choices: []
   ]
   @doc """
@@ -19,7 +17,6 @@ defmodule Ballot.RankedVote do
   """
   def new(candidate_ids) do
     %__MODULE__{
-      id: Ballot.ID.human_readable(),
       choices: candidate_ids
     }
   end
@@ -27,10 +24,6 @@ defmodule Ballot.RankedVote do
   defimpl Ballot.Vote do
     def candidates(vote) do
       vote.choices
-    end
-
-    def id(vote) do
-      vote.id
     end
   end
 end

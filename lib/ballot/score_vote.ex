@@ -14,11 +14,9 @@ defmodule Ballot.ScoreVote do
   alias Ballot.ScoreVote.CandidateScore
 
   @enforce_keys [
-    :id,
     :scores
   ]
   defstruct [
-    id: nil,
     scores: []
   ]
 
@@ -36,7 +34,6 @@ defmodule Ballot.ScoreVote do
       end)
 
     %__MODULE__{
-      id: Ballot.ID.human_readable(),
       scores: score_structs
     }
   end
@@ -44,10 +41,6 @@ defmodule Ballot.ScoreVote do
   defimpl Ballot.Vote do
     def candidates(vote) do
       Enum.map(vote.scores, & &1.candidate)
-    end
-
-    def id(vote) do
-      vote.id
     end
   end
 end

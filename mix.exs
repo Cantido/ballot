@@ -20,8 +20,6 @@ defmodule Ballot.MixProject do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    [
-      {:nanoid, "~> 2.0.5"}
-    ]
+    []
   end
 end
