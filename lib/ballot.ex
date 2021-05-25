@@ -29,12 +29,12 @@ defmodule Ballot do
 
   Approval voting is similar, but votes are lists of all the candidates a voter approves of, so order doesn't matter.
 
-  iex> votes = [
-  ...>   ["A", "B"],
-  ...>   ["B", "C"],
-  ...> ]
-  iex> Ballot.approval(votes)
-  "B"
+      iex> votes = [
+      ...>   ["A", "B"],
+      ...>   ["B", "C"],
+      ...> ]
+      iex> Ballot.approval(votes)
+      "B"
 
   In score voting, each vote is a map of candidates to a numeric score.
 
@@ -47,8 +47,8 @@ defmodule Ballot do
 
     In case of ties, these functions return a list of all the winners.
 
-    iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
-    ["A", "B"]
+      iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
+      ["A", "B"]
   """
 
   @doc """
