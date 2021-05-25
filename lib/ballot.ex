@@ -10,7 +10,7 @@ defmodule Ballot do
 
   ## Examples
 
-      iex> Ballot.Counting.plurality(["A", "A", "A", "B", "B"])
+      iex> Ballot.plurality(["A", "A", "A", "B", "B"])
       ["A"]
   """
   def plurality(votes) do
@@ -41,7 +41,7 @@ defmodule Ballot do
       ...>   ["A"],
       ...>   ["B"]
       ...> ]
-      iex> Ballot.Counting.instant_runoff(votes)
+      iex> Ballot.instant_runoff(votes)
       "A"
 
     If no candidate got at least fifty percent of the vote,
@@ -61,7 +61,7 @@ defmodule Ballot do
     ...>   ["C"],
     ...>   ["C"]
     ...> ]
-    iex> Ballot.Counting.instant_runoff(votes)
+    iex> Ballot.instant_runoff(votes)
     "C"
 
     You can also pass in a required win percentage greater than 50.0,
@@ -80,7 +80,7 @@ defmodule Ballot do
     ...>   ["D", "F"],
     ...>   ["E", "F"],
     ...> ]
-    iex> Ballot.Counting.instant_runoff(votes, required_percentage: 75.0)
+    iex> Ballot.instant_runoff(votes, required_percentage: 75.0)
     "F"
   """
   def instant_runoff(ranked_votes, opts \\ []) do
@@ -155,7 +155,7 @@ defmodule Ballot do
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> Ballot.Counting.borda(votes)
+      iex> Ballot.borda(votes)
       ["B"]
 
   You also start the counting at zero, instead of one, so the last place choice gets zero points.
@@ -167,7 +167,7 @@ defmodule Ballot do
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> Ballot.Counting.borda(votes, starting_at: 0)
+      iex> Ballot.borda(votes, starting_at: 0)
       ["B"]
   """
   def borda(ranked_votes, opts \\ []) do
@@ -223,7 +223,7 @@ defmodule Ballot do
       ...>   ["A", "B", "C"],
       ...>   ["B", "C", "A"],
       ...> ]
-      iex> Ballot.Counting.dowdall(votes)
+      iex> Ballot.dowdall(votes)
       ["B"]
 
   """
@@ -265,7 +265,7 @@ defmodule Ballot do
       ...>   ["A", "B"],
       ...>   ["B", "C"],
       ...> ]
-      iex> Ballot.Counting.approval(votes)
+      iex> Ballot.approval(votes)
       ["B"]
   """
   def approval(approval_votes) do
@@ -301,7 +301,7 @@ defmodule Ballot do
       ...>   %{"A" => 5, "B" => 4, "C" => 1},
       ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
-      iex> Ballot.Counting.score(votes)
+      iex> Ballot.score(votes)
       ["B"]
   """
   def score(score_votes) do
