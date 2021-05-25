@@ -1,6 +1,6 @@
 defmodule Ballot do
   @moduledoc """
-  Ballot is a vote-counting library.
+  A vote-counting library.
 
   Candidates are usually represented by a string, which could be something like your candidate's ID number, or name.
   You can use anything that can be compared by value.
@@ -45,19 +45,32 @@ defmodule Ballot do
       iex> Ballot.score(votes)
       "B"
 
-    In case of ties, these functions return a list of all the winners.
+  In case of ties, these functions return a list of all the winners.
 
       iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
       ["A", "B"]
+
+  ## Performance
+
+  All counting functions traverse the input enumerables as few times as possible.
+  They are all *O(n)* (or *O(n×m)*, where *m* is the length of a single ranked or score vote), with most traversing the input enum just once.
+
+  Also, this library heavily uses `Stream`s.
+  Therefore, you should be able to use `Stream`s as inputs to get the highest counting speeds possible.
   """
 
   @doc """
-  Counts votes and grants the win to the candidate with the most votes.
+  Grants the win to the candidate with the most votes.
 
   ## Examples
 
       iex> Ballot.plurality(["A", "A", "A", "B", "B"])
       "A"
+
+  Returns a list in case of ties.
+
+      iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
+      ["A", "B"]
   """
   def plurality(votes) do
     Stream.map(votes, &{&1, 1})
@@ -66,6 +79,8 @@ defmodule Ballot do
   end
 
   @doc """
+  The quintessential ranked voting strategy.
+
   Counts first place votes, and if the winner has more than 50% of the vote, they win.
   If not, the candidate with the least number of first-choice votes is dropped,
   and the votes are tallied again,
@@ -77,52 +92,55 @@ defmodule Ballot do
   In the simplest case, the candidate with more than fifty percent of the
   first-choice votes wins.
 
-      iex> votes = [
-      ...>   ["A"],
-      ...>   ["A"],
-      ...>   ["B"]
-      ...> ]
-      iex> Ballot.instant_runoff(votes)
-      "A"
-
-    If no candidate got at least fifty percent of the vote,
-    the candidate with the smallest amount of votes is eliminated.
-    This means you look to the second choice on any votes that have that
-    candidate as first choice.
-
-    In this example, no candidates win on the first pass,
-    as "C" does not have *greater than fifty percent* of the vote.
-    Candidates "A" and "B" will lose the first round.
-    Votes with "A" and "B" first will then fall back to their next choice,
-    granting "C" the victory with four out of four votes.
-
     iex> votes = [
-    ...>   ["A", "C"],
-    ...>   ["B", "C"],
-    ...>   ["C"],
-    ...>   ["C"]
+    ...>   ["A"],
+    ...>   ["A"],
+    ...>   ["B"]
     ...> ]
     iex> Ballot.instant_runoff(votes)
-    "C"
+    "A"
 
-    You can also pass in a required win percentage greater than 50.0,
-    and less than or equal to 100.
-    In this case, candidates "B," "C," and "D" lose the first round,
-    and their votes are now for "F".
-    In the second round, "A" then loses, and their votes count for "F".
-    Candidate "F" then wins.
+  If no candidate got at least fifty percent of the vote,
+  the candidate with the smallest amount of votes is eliminated.
+  This means you look to the second choice on any votes that have that
+  candidate as first choice.
 
-    iex> votes = [
-    ...>   ["A", "F"],
-    ...>   ["A", "F"],
-    ...>   ["A", "F"],
-    ...>   ["B", "F"],
-    ...>   ["C", "F"],
-    ...>   ["D", "F"],
-    ...>   ["E", "F"],
-    ...> ]
-    iex> Ballot.instant_runoff(votes, required_percentage: 75.0)
-    "F"
+  In this example, no candidates win on the first pass,
+  as `"C"` does not have *greater than fifty percent* of the vote.
+  Candidates `"A"` and `"B"` will lose the first round.
+  Votes with `"A"` and `"B"` first will then fall back to their next choice,
+  granting `"C"` the victory with four out of four votes.
+
+      iex> votes = [
+      ...>   ["A", "C"],
+      ...>   ["B", "C"],
+      ...>   ["C"],
+      ...>   ["C"]
+      ...> ]
+      iex> Ballot.instant_runoff(votes)
+      "C"
+
+  You can also pass in a required win percentage greater than 50.0,
+  and less than or equal to 100.
+  In this case, candidates `"B"`, `"C"`, and `"D"` lose the first round,
+  and their votes are now for `"F"`.
+  In the second round, `"A"` then loses, and their votes count for `"F"`.
+  Candidate `"F"` then wins.
+
+      iex> votes = [
+      ...>   ["A", "F"],
+      ...>   ["A", "F"],
+      ...>   ["A", "F"],
+      ...>   ["B", "F"],
+      ...>   ["C", "F"],
+      ...>   ["D", "F"],
+      ...>   ["E", "F"],
+      ...> ]
+      iex> Ballot.instant_runoff(votes, required_percentage: 75.0)
+      "F"
+
+  It is impossible for multiple candidates to tie using this function,
+  since the required percentage to win must be greater than fifty percent.
   """
   def instant_runoff(ranked_votes, opts \\ []) do
     do_instant_runoff(ranked_votes, [], opts)
@@ -172,20 +190,20 @@ defmodule Ballot do
   end
 
   @doc """
-  Counts votes based on points granted to higher-ranked candidates.
+  Ranked voting with higher ranks meaning higher scores.
 
   Each vote grants points to all candidates based on their rank in the vote.
   For example, in this vote:
 
       ["A", "B"]
 
-  Candidate "A" is granted two points, and candidate "B" is granted one point.
+  Candidate `"A"` is granted two points, and candidate `"B"` is granted one point.
 
   ## Examples
 
-  In this example, candidate "B" wins with five points.
-  Candidate "A" is in second place with four points,
-  and candidate "C" is last with three points.
+  In this example, candidate `"B"` wins with five points.
+  Candidate `"A"` is in second place with four points,
+  and candidate `"C"` is last with three points.
 
       iex> votes = [
       ...>   ["A", "B", "C"],
@@ -196,8 +214,8 @@ defmodule Ballot do
 
   You also start the counting at zero, instead of one, so the last place choice gets zero points.
   In the previous example, the winner is the same, but the points end up different.
-  Candidate "B" still wins, but with three points,
-  candidate "A" gets two points, and candidate "C" gets one point.
+  Candidate `"B"` still wins, but with three points,
+  candidate `"A"` gets two points, and candidate `"C"` gets one point.
 
       iex> votes = [
       ...>   ["A", "B", "C"],
@@ -205,6 +223,15 @@ defmodule Ballot do
       ...> ]
       iex> Ballot.borda(votes, starting_at: 0)
       "B"
+
+  Returns a list in case of ties.
+
+      iex> votes = [
+      ...>   ["A", "C"],
+      ...>   ["B", "D"],
+      ...> ]
+      iex> Ballot.borda(votes) |> Enum.sort()
+      ["A", "B"]
   """
   def borda(ranked_votes, opts \\ []) do
     starting_at = Keyword.get(opts, :starting_at, 1)
@@ -223,9 +250,9 @@ defmodule Ballot do
   end
 
   @doc """
-  Counts votes based on fractional points awarded to each rank.
+  Ranked voting with fractionally decreasing scores.
 
-  Similar to the Borda count, but instead of granting *more* points to higher ranks,
+  Similar to `borda/1`, but instead of granting *more* points to higher ranks,
   it awards *fractionally smaller* amounts of points to lower ranks.
   In a ballot with five candidates:
   - 1st earns 1.00 points
@@ -238,11 +265,7 @@ defmodule Ballot do
 
   ## Examples
 
-  In this example:
-
-  - "B" earns 1.50 points
-  - "A" earns 1.33 points
-  - "C" earns 0.88 points
+  In this example, `"B"` earns 1.50 points, `"A"` earns 1.33 points, and `"C"` earns 0.88 points.
 
       iex> votes = [
       ...>   ["A", "B", "C"],
@@ -251,6 +274,14 @@ defmodule Ballot do
       iex> Ballot.dowdall(votes)
       "B"
 
+  Returns a list in case of ties.
+
+      iex> votes = [
+      ...>   ["A", "C"],
+      ...>   ["B", "D"],
+      ...> ]
+      iex> Ballot.dowdall(votes) |> Enum.sort()
+      ["A", "B"]
   """
   def dowdall(ranked_votes) do
     ranked_votes
@@ -265,16 +296,15 @@ defmodule Ballot do
   end
 
   @doc """
-  Counts approval votes by counting the total number of approvals for each candidate.
+  Counts the number of approvals of each candidate.
 
   This is different from ranked-choice counting strategies
   because candidates are not ranked among one another,
   and the voter only chooses the candidates they approve of.
-
   ## Examples
 
-  Candidate "B" wins because it has two approvals,
-  whereas candidates "A" and "C" only have one.
+  Candidate `"B"` wins because it has two approvals,
+  whereas candidates `"A"` and `"C"` only have one.
 
       iex> votes = [
       ...>   ["A", "B"],
@@ -282,6 +312,33 @@ defmodule Ballot do
       ...> ]
       iex> Ballot.approval(votes)
       "B"
+
+  Each ballot can only approve of any candidate once.
+
+      iex> votes = [
+      ...>   ["A", "A", "A", "B"],
+      ...>   ["B", "C"],
+      ...> ]
+      iex> Ballot.approval(votes)
+      "B"
+
+  Using `MapSet`s for each ballot would not be out-of-place here.
+
+      iex> votes = [
+      ...>   MapSet.new(["A", "A", "A", "B"]),
+      ...>   MapSet.new(["B", "C"]),
+      ...> ]
+      iex> Ballot.approval(votes)
+      "B"
+
+  Returns a list in case of ties.
+
+      iex> votes = [
+      ...>   ["A", "C"],
+      ...>   ["B", "D"],
+      ...> ]
+      iex> Ballot.approval(votes) |> Enum.sort()
+      ["A", "B", "C", "D"]
   """
   def approval(approval_votes) do
     approval_votes
@@ -292,12 +349,15 @@ defmodule Ballot do
   end
 
   @doc """
-  Counts votes by finding each candidate's average score.
+  Tallies each candidate's average score.
+
+  Each vote is a map of the candidate to their score.
+  Scores can be any numeric value, and the candidate with the highest average is the winner.
 
   ## Examples
 
-  In this example, candidate "B" wins with an average rating of 4.
-  Candidate "A" ends with a score of 3, and "C" with a score of 1.
+  In this example, candidate `"B"` wins with an average rating of 4.
+  Candidate `"A"` ends with a score of 3, and `"C"` with a score of 1.
 
       iex> votes = [
       ...>   %{"A" => 5, "B" => 4, "C" => 1},
@@ -305,6 +365,15 @@ defmodule Ballot do
       ...> ]
       iex> Ballot.score(votes)
       "B"
+
+  Returns a list in case of ties.
+
+      iex> votes = [
+      ...>   %{"A" => 5, "B" => 5, "C" => 1},
+      ...>   %{"A" => 5, "B" => 5, "C" => 1},
+      ...> ]
+      iex> Ballot.score(votes) |> Enum.sort()
+      ["A", "B"]
   """
   def score(score_votes) do
     score_votes
