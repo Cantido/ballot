@@ -8,7 +8,7 @@ defmodule Ballot do
   In the simplest voting system, first-past-the-post AKA plurality voting, all you need is an enumerable of those candidate values.
 
       iex> Ballot.plurality(["A", "A", "A", "B", "B"])
-      ["A"]
+      "A"
 
   More complex votes are represented by plain Elixir data structures.
   For example, votes for any ranked-choice voting system, like Instant Runoff,
@@ -23,7 +23,7 @@ defmodule Ballot do
       iex> Ballot.instant_runoff(votes)
       "C"
       iex> Ballot.dowdall(votes)
-      ["C"]
+      "C"
       iex> Ballot.borda(votes)
       ["B", "C"]
 
@@ -34,7 +34,7 @@ defmodule Ballot do
   ...>   ["B", "C"],
   ...> ]
   iex> Ballot.approval(votes)
-  ["B"]
+  "B"
 
   In score voting, each vote is a map of candidates to a numeric score.
 
@@ -43,7 +43,7 @@ defmodule Ballot do
       ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
       iex> Ballot.score(votes)
-      ["B"]
+      "B"
 
     In case of ties, these functions return a list of all the winners.
 
@@ -57,7 +57,7 @@ defmodule Ballot do
   ## Examples
 
       iex> Ballot.plurality(["A", "A", "A", "B", "B"])
-      ["A"]
+      "A"
   """
   def plurality(votes) do
     freq = Enum.frequencies(votes)
@@ -68,6 +68,7 @@ defmodule Ballot do
     freq
     |> Enum.filter(fn {_candidate, vote_count} -> vote_count == max_votes end)
     |> Enum.map(fn {candidate, _vote_count} -> candidate end)
+    |> winner_or_tie()
   end
 
   @doc """
@@ -202,7 +203,7 @@ defmodule Ballot do
       ...>   ["B", "C", "A"],
       ...> ]
       iex> Ballot.borda(votes)
-      ["B"]
+      "B"
 
   You also start the counting at zero, instead of one, so the last place choice gets zero points.
   In the previous example, the winner is the same, but the points end up different.
@@ -214,7 +215,7 @@ defmodule Ballot do
       ...>   ["B", "C", "A"],
       ...> ]
       iex> Ballot.borda(votes, starting_at: 0)
-      ["B"]
+      "B"
   """
   def borda(ranked_votes, opts \\ []) do
     starting_at = Keyword.get(opts, :starting_at, 1)
@@ -241,6 +242,7 @@ defmodule Ballot do
     # detect ties, report all winners
     Enum.filter(points, fn {_choice, points} -> points == best_points end)
     |> Enum.map(&elem(&1, 0))
+    |> winner_or_tie()
   end
 
   @doc """
@@ -270,7 +272,7 @@ defmodule Ballot do
       ...>   ["B", "C", "A"],
       ...> ]
       iex> Ballot.dowdall(votes)
-      ["B"]
+      "B"
 
   """
   def dowdall(ranked_votes) do
@@ -293,6 +295,7 @@ defmodule Ballot do
     # detect ties, report all winners
     Enum.filter(points, fn {_choice, points} -> points == best_points end)
     |> Enum.map(&elem(&1, 0))
+    |> winner_or_tie()
   end
 
   @doc """
@@ -312,7 +315,7 @@ defmodule Ballot do
       ...>   ["B", "C"],
       ...> ]
       iex> Ballot.approval(votes)
-      ["B"]
+      "B"
   """
   def approval(approval_votes) do
     points =
@@ -333,6 +336,7 @@ defmodule Ballot do
     # detect ties, report all winners
     Enum.filter(points, fn {_choice, points} -> points == best_points end)
     |> Enum.map(&elem(&1, 0))
+    |> winner_or_tie()
   end
 
   @doc """
@@ -348,7 +352,7 @@ defmodule Ballot do
       ...>   %{"A" => 1, "B" => 4, "C" => 1},
       ...> ]
       iex> Ballot.score(votes)
-      ["B"]
+      "B"
   """
   def score(score_votes) do
     points =
@@ -367,5 +371,9 @@ defmodule Ballot do
     # detect ties, report all winners
     Enum.filter(points, fn {_choice, points} -> points == best_points end)
     |> Enum.map(&elem(&1, 0))
+    |> winner_or_tie()
   end
+
+  defp winner_or_tie([winner]), do: winner
+  defp winner_or_tie(results) when is_list(results), do: results
 end
