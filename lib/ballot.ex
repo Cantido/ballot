@@ -24,7 +24,7 @@ defmodule Ballot do
       "C"
       iex> Ballot.dowdall(votes)
       "C"
-      iex> Ballot.borda(votes)
+      iex> Ballot.borda(votes) |> Enum.sort()
       ["B", "C"]
 
   Approval voting is similar, but votes are lists of all the candidates a voter approves of, so order doesn't matter.
@@ -47,7 +47,7 @@ defmodule Ballot do
 
     In case of ties, these functions return a list of all the winners.
 
-    iex> Ballot.plurality(["A", "A", "B", "B"])
+    iex> Ballot.plurality(["A", "A", "B", "B"]) |> Enum.sort()
     ["A", "B"]
   """
 
@@ -60,14 +60,8 @@ defmodule Ballot do
       "A"
   """
   def plurality(votes) do
-    freq = Enum.frequencies(votes)
-
-    # select all winners with max votes so we can recognize ties.
-    max_votes = Enum.max(Map.values(freq))
-
-    freq
-    |> Enum.filter(fn {_candidate, vote_count} -> vote_count == max_votes end)
-    |> Enum.map(fn {candidate, _vote_count} -> candidate end)
+    Stream.map(votes, &{&1, 1})
+    |> all_max_scores()
     |> winner_or_tie()
   end
 
@@ -136,35 +130,29 @@ defmodule Ballot do
 
   defp do_instant_runoff(ranked_votes, losers, opts) do
     tallies =
-      Enum.reduce(ranked_votes, %{}, fn vote, acc ->
-        candidate_id =
-          vote
-          |> Enum.drop_while(&(&1 in losers))
-          |> Enum.at(0)
+      Stream.map(ranked_votes, fn vote ->
+        vote
+        |> Enum.drop_while(&(&1 in losers))
+        |> Enum.at(0)
+      end)
+      |> Enum.frequencies()
 
-        if candidate_id do
-          Map.update(acc, candidate_id, 1, &(&1 + 1))
-        else
-          acc
+    first_key = Enum.at(tallies, 0) |> elem(0)
+    first_val = tallies[first_key]
+
+    {worst_candidates, _worst_votes, best_candidates, best_votes, total_votes} =
+      Map.drop(tallies, [first_key])
+      |> Enum.reduce({[first_key], first_val, [first_key], first_val, first_val}, fn {next_key, next_val}, {lowest_keys, lowest_val, highest_keys, highest_val, total_votes} ->
+        cond do
+          next_val == highest_val -> {lowest_keys, lowest_val, [next_key | highest_keys], highest_val, total_votes + next_val}
+          next_val > highest_val -> {lowest_keys, lowest_val, [next_key], next_val, total_votes + next_val}
+          next_val == lowest_val -> {[next_key | lowest_keys], lowest_val, highest_keys, highest_val, total_votes + next_val}
+          next_val < lowest_val -> {[next_key], next_val, highest_keys, highest_val, total_votes + next_val}
+          true -> {lowest_keys, lowest_val, highest_keys, highest_val, total_votes + next_val}
         end
       end)
 
-    {{_worst_candidate, worst_votes}, {best_candidate, best_votes}} =
-      Enum.min_max_by(tallies, fn {_candidate_id, tally} -> tally end)
-
-    # Detect ties for last place
-    worst_candidates =
-      Enum.filter(tallies, fn {_id, tally} -> tally == worst_votes end)
-      |> Enum.map(fn {id, _tally} -> id end)
-
-    # choices_count isn't necessarily Enum.count(ranked_votes),
-    # since a vote could have only losers in it.
-    choice_count =
-      Enum.reduce(tallies, 0, fn {_candidate_id, votes}, acc ->
-        acc + votes
-      end)
-
-    best_percentage = best_votes / choice_count * 100
+    best_percentage = best_votes / total_votes * 100
     win_percentage = Keyword.get(opts, :win_percentage, 50.0)
 
     cond do
@@ -176,7 +164,8 @@ defmodule Ballot do
     end
 
     if best_percentage > win_percentage do
-      best_candidate
+      # There can't possibly be a tie, this just unwraps the list
+      winner_or_tie(best_candidates)
     else
       do_instant_runoff(ranked_votes, worst_candidates ++ losers, opts)
     end
@@ -223,25 +212,13 @@ defmodule Ballot do
       raise ":starting_at must be 0 or 1"
     end
 
-    points =
-      ranked_votes
-      |> Enum.flat_map(fn vote ->
-        count = Enum.count(vote)
-
-        vote
-        |> Enum.with_index()
-        |> Enum.map(fn {choice, index} -> {choice, count - index + (starting_at - 1)} end)
-      end)
-      |> Enum.reduce(%{}, fn {choice, points}, acc ->
-        Map.update(acc, choice, points, &(&1 + points))
-      end)
-
-    {_best_candidate, best_points} =
-      Enum.max_by(points, fn {_choice, points} -> points end)
-
-    # detect ties, report all winners
-    Enum.filter(points, fn {_choice, points} -> points == best_points end)
-    |> Enum.map(&elem(&1, 0))
+    ranked_votes
+    |> Stream.flat_map(fn vote ->
+      Enum.reverse(vote)
+      |> Stream.with_index()
+      |> Stream.map(fn {choice, index} -> {choice, index + starting_at} end)
+    end)
+    |> all_max_scores()
     |> winner_or_tie()
   end
 
@@ -276,25 +253,14 @@ defmodule Ballot do
 
   """
   def dowdall(ranked_votes) do
-    points =
-      ranked_votes
-      |> Enum.flat_map(fn vote ->
-        vote
-        |> Enum.with_index()
-        |> Enum.map(fn {choice, index} ->
-          {choice, 1 / (index + 1)}
-        end)
+    ranked_votes
+    |> Stream.flat_map(fn vote ->
+      Stream.with_index(vote)
+      |> Stream.map(fn {choice, index} ->
+        {choice, 1 / (index + 1)}
       end)
-      |> Enum.reduce(%{}, fn {choice, points}, acc ->
-        Map.update(acc, choice, points, &(&1 + points))
-      end)
-
-    {_best_candidate, best_points} =
-      Enum.max_by(points, fn {_choice, points} -> points end)
-
-    # detect ties, report all winners
-    Enum.filter(points, fn {_choice, points} -> points == best_points end)
-    |> Enum.map(&elem(&1, 0))
+    end)
+    |> all_max_scores()
     |> winner_or_tie()
   end
 
@@ -318,24 +284,9 @@ defmodule Ballot do
       "B"
   """
   def approval(approval_votes) do
-    points =
-      approval_votes
-      |> Enum.flat_map(fn vote ->
-        vote
-        |> Enum.map(fn choice ->
-          {choice, 1}
-        end)
-      end)
-      |> Enum.reduce(%{}, fn {choice, points}, acc ->
-        Map.update(acc, choice, points, &(&1 + points))
-      end)
-
-    {_best_candidate, best_points} =
-      Enum.max_by(points, fn {_choice, points} -> points end)
-
-    # detect ties, report all winners
-    Enum.filter(points, fn {_choice, points} -> points == best_points end)
-    |> Enum.map(&elem(&1, 0))
+    Stream.concat(approval_votes)
+    |> Stream.map(&{&1, 1})
+    |> all_max_scores()
     |> winner_or_tie()
   end
 
@@ -355,25 +306,37 @@ defmodule Ballot do
       "B"
   """
   def score(score_votes) do
-    points =
-      score_votes
-      |> Enum.flat_map(&Map.to_list/1)
-      |> Enum.reduce(%{}, fn {candidate_id, score}, acc ->
-        Map.update(acc, candidate_id, score, &(&1 + score))
-      end)
-
-    # We don't need to actually find the average, since we will just be
-    # picking the highest anyway.
-
-    {_best_candidate, best_points} =
-      Enum.max_by(points, fn {_choice, points} -> points end)
-
-    # detect ties, report all winners
-    Enum.filter(points, fn {_choice, points} -> points == best_points end)
-    |> Enum.map(&elem(&1, 0))
+    score_votes
+    |> Stream.flat_map(&Map.to_list/1)
+    |> all_max_scores()
     |> winner_or_tie()
   end
 
   defp winner_or_tie([winner]), do: winner
   defp winner_or_tie(results) when is_list(results), do: results
+
+  defp all_max_scores(scores) do
+    [{first_key, first_score}] = Stream.take(scores, 1) |> Enum.to_list()
+    rest = Stream.drop(scores, 1)
+    {_scores, winners, _winning_score} =
+      Enum.reduce(rest, {%{first_key => first_score}, [first_key], first_score}, fn {candidate, score}, {scores, winners, winning_score} ->
+        {new_score, scores} = Map.get_and_update(scores, candidate, fn current_score ->
+          new_score =
+            if is_nil(current_score) do
+              score
+            else
+              current_score + score
+            end
+
+          {new_score, new_score}
+        end)
+
+        cond do
+          new_score == winning_score -> {scores, [candidate | winners], winning_score}
+          new_score > winning_score -> {scores, [candidate], new_score}
+          new_score < winning_score -> {scores, winners, winning_score}
+        end
+      end)
+    winners
+  end
 end
