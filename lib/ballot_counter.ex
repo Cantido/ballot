@@ -56,13 +56,15 @@ defmodule BallotCounter do
       iex> BallotCounter.quota(["A", "A", "B", "B"], 0.60)
       nil
 
-  ## Performance
+  All functions in this library expect values that implement `Enumerable`.
+  It is entirely possible to pass in a `Stream` of values, and this library uses `Stream` as much as possible,
+  so you might get better counting speeds if your data source can be streamed.
+  Remember that `Ecto.Repo.stream/2` exists!
 
-  All counting functions traverse the input enumerables as few times as possible.
-  They are all *O(n)* (or *O(n×m)*, where *m* is the length of a single ranked or score vote), with most traversing the input enum just once.
-
-  Also, this library heavily uses `Stream`s.
-  Therefore, you should be able to use `Stream`s as inputs to get the highest counting speeds possible.
+      iex> Stream.cycle(["A", "B", "C"])
+      ...> |> Stream.take(999)
+      ...> |> BallotCounter.plurality()
+      ["A", "B", "C"]
   """
 
   @doc """
@@ -80,8 +82,13 @@ defmodule BallotCounter do
   """
   @spec plurality(Enumerable.t()) :: any()
   def plurality(ballots) do
-    Stream.map(ballots, &{&1, 1})
-    |> all_max_scores()
+    votes = Enum.frequencies(ballots)
+    {_top_candidate, top_votes_count} = Enum.max_by(votes, &elem(&1, 1))
+
+    # tie detection, select everyone with the top number of votes
+    Stream.filter(votes, fn {_c, v} -> v == top_votes_count end)
+    |> Stream.map(&elem(&1, 0))
+    |> Enum.to_list()
     |> winner_or_tie_or_none()
   end
 
