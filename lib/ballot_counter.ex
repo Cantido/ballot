@@ -86,9 +86,8 @@ defmodule BallotCounter do
     {_top_candidate, top_votes_count} = Enum.max_by(votes, &elem(&1, 1))
 
     # tie detection, select everyone with the top number of votes
-    Stream.filter(votes, fn {_c, v} -> v == top_votes_count end)
-    |> Stream.map(&elem(&1, 0))
-    |> Enum.to_list()
+    Enum.filter(votes, fn {_c, v} -> v == top_votes_count end)
+    |> Enum.map(&elem(&1, 0))
     |> winner_or_tie_or_none()
   end
 
@@ -192,7 +191,7 @@ defmodule BallotCounter do
   def plurality_with_runoff(ballots) do
     votes =
       ballots
-      |> Stream.map(&Enum.at(&1, 0))
+      |> Enum.map(&Enum.at(&1, 0))
       |> Enum.frequencies()
       |> Enum.sort_by(&elem(&1, 1), :desc)
 
@@ -204,28 +203,28 @@ defmodule BallotCounter do
       top_candidate
     else
       tied_winners =
-        Stream.take_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
+        Enum.take_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
 
-      rest = Stream.drop_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
+      rest = Enum.drop_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
 
       {_second_place_candidate, second_place_votes_count} = Enum.at(rest, 0)
 
       tied_second_place =
-        Stream.take_while(rest, fn {_candidate, votes_count} -> votes_count == second_place_votes_count end)
+        Enum.take_while(rest, fn {_candidate, votes_count} -> votes_count == second_place_votes_count end)
 
       runoff_candidates =
-        Stream.concat(tied_winners, tied_second_place)
-        |> Stream.map(&elem(&1, 0))
+        Enum.concat(tied_winners, tied_second_place)
+        |> Enum.map(&elem(&1, 0))
 
       runoff_ballots =
         ballots
-        |> Stream.map(fn ballot ->
-            Stream.drop_while(ballot, fn candidate ->
+        |> Enum.map(fn ballot ->
+          Enum.drop_while(ballot, fn candidate ->
               candidate not in runoff_candidates
             end)
           end)
-        |> Stream.reject(&Enum.empty?/1)
-        |> Stream.map(&Enum.at(&1, 0))
+        |> Enum.reject(&Enum.empty?/1)
+        |> Enum.map(&Enum.at(&1, 0))
 
       runoff_votes =
         runoff_ballots
@@ -409,8 +408,8 @@ defmodule BallotCounter do
     ballots
     |> Stream.flat_map(fn ballot ->
       Enum.reverse(ballot)
-      |> Stream.with_index()
-      |> Stream.map(fn {candidate, index} -> {candidate, index + starting_at} end)
+      |> Enum.with_index()
+      |> Enum.map(fn {candidate, index} -> {candidate, index + starting_at} end)
     end)
     |> all_max_scores()
     |> winner_or_tie_or_none()
@@ -453,9 +452,9 @@ defmodule BallotCounter do
   @spec dowdall(Enumerable.t()) :: any()
   def dowdall(ballot) do
     ballot
-    |> Stream.flat_map(fn ballot ->
-      Stream.with_index(ballot)
-      |> Stream.map(fn {candidate, index} ->
+    |> Enum.flat_map(fn ballot ->
+      Enum.with_index(ballot)
+      |> Enum.map(fn {candidate, index} ->
         {candidate, 1 / (index + 1)}
       end)
     end)
@@ -512,8 +511,8 @@ defmodule BallotCounter do
   @spec approval(Enumerable.t()) :: any()
   def approval(ballots) do
     ballots
-    |> Stream.flat_map(&Stream.uniq/1)
-    |> Stream.map(&{&1, 1})
+    |> Enum.flat_map(&Enum.uniq/1)
+    |> Enum.map(&{&1, 1})
     |> all_max_scores()
     |> winner_or_tie_or_none()
   end
@@ -576,7 +575,7 @@ defmodule BallotCounter do
         cond do
           new_score == winning_score -> {scores, [candidate | winners], winning_score}
           new_score > winning_score -> {scores, [candidate], new_score}
-          new_score < winning_score -> {scores, winners, winning_score}
+          true -> {scores, winners, winning_score}
         end
       end)
     winners
