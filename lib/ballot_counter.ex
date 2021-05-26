@@ -244,6 +244,8 @@ defmodule BallotCounter do
   this time taking the second choice of any votes that had the loser first.
   Ties for last place result in multiple candidates being removed in one round.
 
+  This method is also called Hare Rule, Ranked-Choice, and Alternative Vote.
+
   ## Examples
 
   In the simplest case, the candidate with more than fifty percent of the
