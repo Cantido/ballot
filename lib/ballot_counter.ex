@@ -185,7 +185,7 @@ defmodule BallotCounter do
   def plurality_with_runoff(ballots) do
     votes =
       ballots
-      |> Enum.map(&Enum.at(&1, 0))
+      |> Stream.map(&Enum.at(&1, 0))
       |> Enum.frequencies()
       |> Enum.sort_by(&elem(&1, 1), :desc)
 
@@ -197,28 +197,28 @@ defmodule BallotCounter do
       top_candidate
     else
       tied_winners =
-        Enum.take_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
+        Stream.take_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
 
-      rest = Enum.drop_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
+      rest = Stream.drop_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
 
       {_second_place_candidate, second_place_votes_count} = Enum.at(rest, 0)
 
       tied_second_place =
-        Enum.take_while(rest, fn {_candidate, votes_count} -> votes_count == second_place_votes_count end)
+        Stream.take_while(rest, fn {_candidate, votes_count} -> votes_count == second_place_votes_count end)
 
       runoff_candidates =
-        (tied_winners ++ tied_second_place)
-        |> Enum.map(&elem(&1, 0))
+        Stream.concat(tied_winners, tied_second_place)
+        |> Stream.map(&elem(&1, 0))
 
       runoff_ballots =
         ballots
-        |> Enum.map(fn ballot ->
-            Enum.drop_while(ballot, fn candidate ->
+        |> Stream.map(fn ballot ->
+            Stream.drop_while(ballot, fn candidate ->
               candidate not in runoff_candidates
             end)
           end)
-        |> Enum.reject(&Enum.empty?/1)
-        |> Enum.map(&Enum.at(&1, 0))
+        |> Stream.reject(&Enum.empty?/1)
+        |> Stream.map(&Enum.at(&1, 0))
 
       runoff_votes =
         runoff_ballots
