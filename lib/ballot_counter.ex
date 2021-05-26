@@ -125,6 +125,117 @@ defmodule BallotCounter do
   end
 
   @doc """
+  Plurality with Ranked-choice characteristics.
+
+  If any candidate does not receive more than 50% of the vote,
+  then a runoff is held between the top two candidates.
+
+  ## Examples
+
+  In the simplest case, the candidate with greater than 50% of the first-choice votes wins.
+
+      iex> ballots = [
+      ...>   ["A", "B"],
+      ...>   ["A", "B"],
+      ...>   ["B", "C"],
+      ...> ]
+      iex> BallotCounter.plurality_with_runoff(ballots)
+      "A"
+
+  If nobody has greater than 50% of the vote,
+  there is a runoff between the two candidates with the most highest-rank votes.
+
+  In this example, `"A"` and `"B"` are the top two candidates, but neither has greater than 50% of the vote.
+  In a runoff, the last two ballots ends up being votes for `"B"`, so `"B"` wins.
+
+      iex> ballots = [
+      ...>   ["A"],
+      ...>   ["A"],
+      ...>   ["A"],
+      ...>   ["B"],
+      ...>   ["B"],
+      ...>   ["C", "B"],
+      ...>   ["D", "B"]
+      ...> ]
+      iex> BallotCounter.plurality_with_runoff(ballots)
+      "B"
+
+  In case of ties before the runoff, the runoff happens between everyone tied for first, and everyone tied for second.
+  In this example, `"A"` and `"B"` are tied for first, and `"C"` is in second place.
+  However, since all of the ballots at the bottom of list have `"C"` as their second choice, `"C"` ends up the winner.
+
+      iex> ballots = [
+      ...>   ["A"],
+      ...>   ["A"],
+      ...>   ["A"],
+      ...>   ["B"],
+      ...>   ["B"],
+      ...>   ["B"],
+      ...>   ["C"],
+      ...>   ["C"],
+      ...>   ["D", "C"],
+      ...>   ["E", "C"],
+      ...>   ["F", "C"],
+      ...>   ["G", "C"],
+      ...>   ["H", "C"]
+      ...> ]
+      iex> BallotCounter.plurality_with_runoff(ballots)
+      "C"
+  """
+  def plurality_with_runoff(ballots) do
+    votes =
+      ballots
+      |> Enum.map(&Enum.at(&1, 0))
+      |> Enum.frequencies()
+      |> Enum.sort_by(&elem(&1, 1), :desc)
+
+    ballots_count = Enum.count(ballots)
+
+    {top_candidate, top_votes_count} = Enum.at(votes, 0)
+
+    if top_votes_count / ballots_count > 0.50 do
+      top_candidate
+    else
+      tied_winners =
+        Enum.take_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
+
+      rest = Enum.drop_while(votes, fn {_candidate, votes_count} -> votes_count == top_votes_count end)
+
+      {_second_place_candidate, second_place_votes_count} = Enum.at(rest, 0)
+
+      tied_second_place =
+        Enum.take_while(rest, fn {_candidate, votes_count} -> votes_count == second_place_votes_count end)
+
+      runoff_candidates =
+        (tied_winners ++ tied_second_place)
+        |> Enum.map(&elem(&1, 0))
+
+      runoff_ballots =
+        ballots
+        |> Enum.map(fn ballot ->
+            Enum.drop_while(ballot, fn candidate ->
+              candidate not in runoff_candidates
+            end)
+          end)
+        |> Enum.reject(&Enum.empty?/1)
+        |> Enum.map(&Enum.at(&1, 0))
+
+      runoff_votes =
+        runoff_ballots
+        |> Enum.frequencies()
+        |> Enum.sort_by(&elem(&1, 1), :desc)
+
+      {top_runoff_candidate, top_runoff_votes_count} = Enum.at(runoff_votes, 0)
+
+      if top_runoff_votes_count / Enum.count(runoff_ballots) > 0.50 do
+        top_runoff_candidate
+      else
+        nil
+      end
+    end
+  end
+
+  @doc """
   The quintessential ranked voting strategy.
 
   Counts first place votes, and if the winner has more than 50% of the vote, they win.
