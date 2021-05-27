@@ -463,6 +463,97 @@ defmodule BallotCounter do
   end
 
   @doc """
+  Ranked-choice that drops candidates with the most last-place votes.any()
+
+  ## Examples
+
+  If a candidate receives over 50% of the first-choice votes, that candidate wins.
+
+      iex> ballots = [
+      ...>   ["A", "B"],
+      ...>   ["A", "B"],
+      ...>   ["B", "C"],
+      ...> ]
+      iex> BallotCounter.coombs(ballots)
+      "A"
+
+  If there is no candidate with a strict majority of first-place votes,
+  the candidate with the most last-place votes is dropped, and the election is held again.
+  In this example, no candidate has a strict first-place majority.
+  So, candidate `"B"` is deleted, since it received the most last-place votes, and the election is held again.
+  Candidate `"A"` then wins.
+
+      iex> ballots = [
+      ...>   ["A", "B"],
+      ...>   ["A", "B"],
+      ...>   ["A", "B"],
+      ...>   ["B", "A"],
+      ...>   ["C", "D"],
+      ...>   ["D", "C"],
+      ...> ]
+      iex> BallotCounter.coombs(ballots)
+      "A"
+
+  This will happen repeatedly until a winner is found, or nobody wins.
+
+      iex> ballots = [
+      ...>   ["A", "B"],
+      ...>   ["B", "C"],
+      ...>   ["C", "A"],
+      ...> ]
+      iex> BallotCounter.coombs(ballots)
+      nil
+  """
+  @spec coombs(Enumerable.t()) :: any()
+  def coombs(ballots) do
+    do_coombs(ballots, [])
+  end
+
+  defp do_coombs(ballots, losers) do
+    ballots_without_losers =
+      Enum.map(ballots, fn ballot ->
+        Enum.reject(ballot, &(&1 in losers))
+      end)
+      |> Enum.reject(&Enum.empty?/1)
+
+    if Enum.empty?(ballots_without_losers) do
+      nil
+    else
+
+      votes =
+        ballots_without_losers
+        |> Enum.map(&Enum.at(&1, 0))
+        |> Enum.frequencies()
+        |> Enum.sort_by(&elem(&1, 1), :desc)
+
+      ballots_count = Enum.count(ballots_without_losers)
+
+      {top_candidate, top_votes_count} = Enum.at(votes, 0)
+
+      if top_votes_count / ballots_count > 0.50 do
+        top_candidate
+      else
+        last_place_votes =
+          ballots_without_losers
+          |> Enum.map(&Enum.reverse/1)
+          |> Enum.map(&Enum.at(&1, 0))
+          |> Enum.frequencies()
+          |> Enum.sort_by(&elem(&1, 1), :desc)
+
+        {_loser, worst_votes_count} = Enum.at(last_place_votes, 0)
+
+        # detect all losers for last place
+        new_losers = Enum.filter(last_place_votes, fn {_loser, votes_count} ->
+          votes_count == worst_votes_count
+        end)
+        |> Enum.map(&elem(&1, 0))
+
+        do_coombs(ballots, new_losers ++ losers)
+      end
+    end
+  end
+
+  @doc """
   Counts the number of approvals of each candidate.
 
   This is different from ranked-choice counting strategies
