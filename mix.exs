@@ -21,6 +21,7 @@ defmodule BallotCounter.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:exprof, "~> 0.2.0"},
       {:benchee, "~> 1.0", only: :dev},
       {:ex_doc, "~> 0.24", only: :dev, runtime: false}
     ]
