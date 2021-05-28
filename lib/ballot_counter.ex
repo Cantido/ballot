@@ -643,6 +643,71 @@ defmodule BallotCounter do
     |> winner_or_tie_or_none()
   end
 
+  @doc """
+  A score voting scheme using the score median, not mean.
+
+  ## Examples
+
+  In this example, `"A"` has a mean score of 2.6, and would win if this was normal score voting.
+  However, since we are looking at the median, `"B"`'s median of 3 makes them the winner.
+
+      iex> ballots = [
+      ...>   %{"A" => 4, "B" => 3, "C" => 1},
+      ...>   %{"A" => 4, "B" => 3, "C" => 2},
+      ...>   %{"A" => 2, "B" => 0, "C" => 3},
+      ...>   %{"A" => 2, "B" => 3, "C" => 4},
+      ...>   %{"A" => 1, "B" => 0, "C" => 2},
+      ...> ]
+      iex> BallotCounter.majority_judgement(ballots)
+      "B"
+
+  Returns a list in case of a tie.
+
+      iex> ballots = [
+      ...>   %{"A" => 4, "B" => 4, "C" => 1},
+      ...>   %{"A" => 4, "B" => 4, "C" => 2}
+      ...> ]
+      iex> BallotCounter.majority_judgement(ballots) |> Enum.sort()
+      ["A", "B"]
+  """
+  def majority_judgement(ballots) do
+    score_medians =
+      Enum.flat_map(ballots, &Map.to_list/1)
+      |> Enum.reduce(%{}, fn {candidate, score}, scores ->
+        Map.update(scores, candidate, [score], &[score | &1])
+      end)
+      |> Enum.map(fn {candidate, scores} ->
+        {candidate, median(scores)}
+      end)
+      |> Enum.sort_by(&elem(&1, 1), :desc)
+
+    {_, top_score} = Enum.at(score_medians, 0)
+
+    Enum.filter(score_medians, fn {_candidate, score} ->
+      score == top_score
+    end)
+    |> Enum.map(&elem(&1, 0))
+    |> winner_or_tie_or_none()
+  end
+
+  defp median(values) do
+    count = Enum.count(values)
+
+    if count == 0 do
+      raise Enum.EmptyError
+    end
+
+    i = div(count, 2)
+
+    sorted = Enum.sort(values)
+
+    if rem(count, 2) == 1 do
+      Enum.at(sorted, i)
+    else
+      (Enum.at(sorted, i - 1) + Enum.at(sorted, i)) / 2
+    end
+  end
+
   defp winner_or_tie_or_none([]), do: nil
   defp winner_or_tie_or_none([winner]), do: winner
   defp winner_or_tie_or_none(results) when is_list(results), do: results
